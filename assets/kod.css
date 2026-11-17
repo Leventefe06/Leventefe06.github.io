@@ -1,0 +1,49 @@
+.kod-sayfasi { background: #000; }
+.kod-bas {
+  position: sticky; top: 0; z-index: 2;
+  display: grid; grid-template-columns: 1fr; gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+  background: rgba(0, 0, 0, 0.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--cizgi);
+}
+.geri { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--soluk); justify-self: start; padding: 4px 0; }
+.geri:hover { color: var(--yazi); }
+.kod-bilgi h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.kod-bilgi p { margin: 3px 0 0; font: 12px/1.4 var(--mono); color: var(--soluk); }
+.kod-eylemler { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.kod-eylemler .eylem { background: transparent; color: #e6e6e6; border-color: var(--cizgi); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.kod-eylemler .eylem:first-child { background: #f2f2f2; color: #000; border-color: #f2f2f2; }
+.kod-eylemler .eylem:disabled { opacity: .5; cursor: default; }
+.kod-eylemler .eylem.tamam { background: #000; color: #f2f2f2; border-color: var(--cizgi-guclu); }
+
+.kod-kutu {
+  margin: 0; padding: 14px 0 48px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  font: 12px/1.65 var(--mono); color: #d6d6d6; tab-size: 2;
+  counter-reset: satir;
+}
+.kod-kutu code { display: block; min-width: max-content; }
+.satir { display: block; padding-right: 20px; white-space: pre; }
+.satir::before {
+  counter-increment: satir; content: counter(satir);
+  display: inline-block; width: 3.4em; padding-right: 1.2em; margin-right: 0.4em; text-align: right;
+  color: #3d3d3d; user-select: none; -webkit-user-select: none;
+  position: sticky; left: 0; background: #000;
+}
+
+.v-yorum { color: #6a7078; font-style: italic; }
+.v-metin { color: #b4cf9c; }
+.v-sayi, .v-sabit { color: #e3b27c; }
+.v-anahtar { color: #9db8ff; }
+.v-fonk { color: #f0f0f0; }
+.v-ozellik { color: #b8c4d0; }
+.v-isaret { color: #7c7c7c; }
+.v-etiket { color: #9db8ff; }
+.v-nitelik { color: #c8aef5; }
+.v-secici { color: #e7c98f; }
+
+@media (min-width: 720px) {
+  .kod-bas { grid-template-columns: auto 1fr auto; align-items: center; gap: 20px; padding: 16px 28px; }
+  .kod-eylemler { grid-template-columns: repeat(3, auto); }
+  .kod-eylemler .eylem { padding: 0 16px; }
+  .kod-kutu { font-size: 13px; padding: 20px 12px 64px; }
+}
