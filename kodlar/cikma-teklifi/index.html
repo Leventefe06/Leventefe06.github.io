@@ -100,6 +100,28 @@
     transition: font-size .5s cubic-bezier(.34, 1.5, .64, 1), background-color .2s;
   }
   #evet:hover { background: #26d466; }
+  #evet.tam {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border-radius: 0;
+    font-size: min(30vw, 42vh);
+    letter-spacing: -0.02em;
+    box-shadow: none;
+    clip-path: inset(0 round 0);
+    animation: kapla .7s cubic-bezier(.65, 0, .25, 1);
+  }
+  @keyframes kapla {
+    from {
+      clip-path: inset(var(--ust) var(--sag) var(--alt) var(--sol) round 24px);
+      font-size: var(--ilk);
+    }
+  }
+  #hayir.gizli { display: none; }
+  .butonlar.serbest { container-type: normal; }
 
   #hayir {
     --k: 1;
@@ -380,7 +402,23 @@ function yenidenOynat(el, sinif) {
   el.classList.add(sinif);
 }
 
+function tamEkranEvet() {
+  const r = evet.getBoundingClientRect();
+  evet.style.setProperty('--ust', r.top + 'px');
+  evet.style.setProperty('--sol', r.left + 'px');
+  evet.style.setProperty('--sag', (innerWidth - r.right) + 'px');
+  evet.style.setProperty('--alt', (innerHeight - r.bottom) + 'px');
+  evet.style.setProperty('--ilk', getComputedStyle(evet).fontSize);
+  evet.parentElement.classList.add('serbest');
+  evet.classList.add('tam');
+  hayir.classList.add('gizli');
+}
+
 hayir.addEventListener('click', () => {
+  if (sayac >= CUMLELER.length) {
+    tamEkranEvet();
+    return;
+  }
   sayac++;
   guncelle();
   yenidenOynat(hayir, 'salla');
@@ -523,6 +561,9 @@ document.getElementById('tekrar').addEventListener('click', () => {
   kalpler.innerHTML = '';
   cevap.hidden = true;
   soru.hidden = false;
+  evet.classList.remove('tam');
+  evet.parentElement.classList.remove('serbest');
+  hayir.classList.remove('gizli');
   sayac = 0;
   guncelle();
 });
