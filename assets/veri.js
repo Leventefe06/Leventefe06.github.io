@@ -20,6 +20,12 @@ const PROFIL = {
 //   kodlar/<klasor>/kod/index.html -> "Kodu gör" sayfası (başka bir klasörden kopyala, değiştirme)
 const KODLAR = [
   {
+    klasor: 'cikma-teklifi',
+    baslik: 'Çıkma teklifi',
+    aciklama: '',
+    tarih: '2026-11-18',
+  },
+  {
     klasor: 'kasimpati',
     baslik: 'Kasımpatı',
     aciklama: '',
