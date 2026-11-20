@@ -28,16 +28,17 @@
 
 <script>
 const AYARLAR = {
-  yaprakSayisi: 28,
+  gulSayisi: 24,
   canakYaprak: 5,
   parilti: 40,
-  cipso: 12,
+  cipso: 24,
+  yesilYaprak: 22,
   sapSuresi: 1.4,
   tomurcukSuresi: 1.0,
-  acilmaSuresi: 3.0,
+  acilmaSuresi: 3.6,
   salinim: 1,
   kurdele: true,
-  golgeGucu: 0.42
+  golgeGucu: 0.4
 };
 
 const PALETLER = {
@@ -82,43 +83,73 @@ const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), pars
 const renkYaz = (c, a = 1) => 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a + ')';
 const karistir = (a, b, k) => [ara(a[0], b[0], k), ara(a[1], b[1], k), ara(a[2], b[2], k)];
 
-const BAG = { x: 0, y: -0.32 };
+const BAG = { x: 0, y: -0.5 };
+const KUBBE = { x: 0, y: 1.0, rx: 1.32, ry: 1.12 };
+const TONLAR = [[1, 1, 1], [1, 0.985, 0.95], [1, 0.972, 0.962], [0.985, 0.99, 1], [1, 0.99, 0.975]];
+const DETAY = { yuksek: [14, 12], dusuk: [10, 8] };
 
-const GULLER = [
-  { x: 0.018, y: 1.422, z: -0.5, boy: 0.663, egim: 0.42, yaw: 0.1, yatik: -0.04, hedef: 1, gecikme: 0.2 },
-  { x: -0.558, y: 1.818, z: -0.7, boy: 0.482, egim: 0.22, yaw: 0.3, yatik: 0.28, hedef: 0.26, gecikme: 0.7 },
-  { x: 0.612, y: 1.744, z: -0.7, boy: 0.514, egim: 0.32, yaw: 0.5, yatik: -0.3, hedef: 0.55, gecikme: 1.3 },
-  { x: -0.648, y: 0.962, z: 0.1, boy: 0.642, egim: 0.45, yaw: -0.4, yatik: 0.3, hedef: 1, gecikme: 0.9 },
-  { x: 0.666, y: 1.026, z: 0.1, boy: 0.621, egim: 0.48, yaw: 0.7, yatik: -0.32, hedef: 1, gecikme: 1.15 },
-  { x: -0.9, y: 0.364, z: 0.4, boy: 0.514, egim: 0.5, yaw: -0.2, yatik: 0.5, hedef: 0.75, gecikme: 1.6 },
-  { x: 0.882, y: 0.456, z: 0.35, boy: 0.449, egim: 0.3, yaw: 0.2, yatik: -0.55, hedef: 0.3, gecikme: 1.0 },
-  { x: 0.0, y: 0.658, z: 0.8, boy: 0.728, egim: 0.6, yaw: 0.25, yatik: 0.0, hedef: 1, gecikme: 0.5 }
-];
+const GULLER = [];
+(function () {
+  const n = AYARLAR.gulSayisi;
+  const altSinir = -0.15;
+  for (let i = 0; i < n; i++) {
+    const z = 1 - (i + 0.5) / n * (1 - altSinir);
+    const r = Math.sqrt(1 - z * z);
+    const a = i * 2.39996 + 0.9;
+    const dx = Math.cos(a) * r;
+    let dy = Math.sin(a) * r;
+    if (dy < -0.5) dy = -0.5 + (dy + 0.5) * 0.45;
+    const yon = [dx, dy * 0.9 + 0.45, z * 1.1 + 0.1];
+    const yl = Math.hypot(...yon);
+    const kenar = r;
+    let hedef = 0.82 + rastgele() * 0.18;
+    let boy = (0.66 - 0.12 * kenar) * (0.86 + rastgele() * 0.28);
+    if (kenar > 0.75 && rastgele() < 0.5) { hedef = 0.22 + rastgele() * 0.35; boy *= 0.85; }
+    else if (rastgele() < 0.12) hedef = 0.55 + rastgele() * 0.2;
+    const yuksek = z > 0.3;
+    GULLER.push({
+      x: KUBBE.x + dx * KUBBE.rx + (rastgele() - 0.5) * 0.08,
+      y: KUBBE.y + dy * KUBBE.ry + (rastgele() - 0.5) * 0.08,
+      z: z * 0.95 + (rastgele() - 0.5) * 0.05,
+      boy, hedef,
+      egim: Math.min(0.85, Math.asin(yon[2] / yl)) + (rastgele() - 0.5) * 0.16,
+      yatik: -Math.atan2(yon[0], yon[1]) + (rastgele() - 0.5) * 0.15,
+      yaw: rastgele() * Math.PI * 2,
+      gecikme: kenar * 1.0 + rastgele() * 0.6,
+      yaprak: (yuksek ? 22 : 16) + Math.floor(rastgele() * 7),
+      kivrim: 0.8 + rastgele() * 0.45,
+      ton: TONLAR[Math.floor(rastgele() * TONLAR.length)],
+      izgara: yuksek ? DETAY.yuksek : DETAY.dusuk
+    });
+  }
+  GULLER.push({
+    x: KUBBE.x + 0.02, y: KUBBE.y - 0.4, z: 1.05, boy: 0.68, hedef: 1, egim: 0.78, yatik: 0.02,
+    yaw: 0.6, gecikme: 0.1, yaprak: 27, kivrim: 1, ton: TONLAR[0], izgara: DETAY.yuksek
+  });
+})();
 
-const SU = 16, SV = 14;
-const KOSE = (SU + 1) * (SV + 1);
-
-function yaprakTanimla() {
+function yaprakTanimla(g) {
   const liste = [];
-  for (let i = 0; i < AYARLAR.yaprakSayisi; i++) {
-    const t = i / (AYARLAR.yaprakSayisi - 1);
+  const n = g.yaprak;
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
     liste.push({
       t, tur: 0,
-      aci: i * 2.39996 + (rastgele() - 0.5) * 0.3,
+      aci: i * 2.39996 + (rastgele() - 0.5) * 0.35,
       tomurcuk: {
         boy: 0.34 + 0.3 * t, taban: 0.01 + 0.07 * t, yukseklik: -0.04 * t,
         aci0: 0.06 + 0.32 * t, aci1: -0.6 - 0.12 * t, kivrim: 0, rulo: 0, kase: 0,
         genislik: ara(4.4, 3.0, t)
       },
       acik: {
-        boy: (0.44 + 0.7 * Math.pow(t, 0.8)) * (0.94 + rastgele() * 0.12),
+        boy: (0.44 + 0.7 * Math.pow(t, 0.8)) * (0.92 + rastgele() * 0.16),
         taban: 0.012 + 0.11 * t, yukseklik: -0.14 * t,
-        aci0: 0.04 + 0.68 * Math.pow(t, 1.6),
+        aci0: (0.04 + 0.68 * Math.pow(t, 1.6)) * (0.9 + rastgele() * 0.2),
         aci1: -0.48 + 1.25 * Math.pow(t, 1.3),
-        kivrim: 1.15 * gecis(0.45, 1, t),
+        kivrim: 1.15 * gecis(0.45, 1, t) * g.kivrim,
         rulo: 0.3 * gecis(0.3, 1, t),
         kase: 1,
-        genislik: ara(4.3, 2.05, Math.pow(t, 0.7))
+        genislik: ara(4.3, 2.05, Math.pow(t, 0.7)) * (0.94 + rastgele() * 0.12)
       },
       baslama: (1 - t) * 0.62 + rastgele() * 0.05
     });
@@ -130,31 +161,51 @@ function yaprakTanimla() {
 }
 
 GULLER.forEach(g => {
-  g.yapraklar = yaprakTanimla();
-  const n = g.yapraklar.length * KOSE;
+  g.yapraklar = yaprakTanimla(g);
+  g.su = g.izgara[0]; g.sv = g.izgara[1];
+  g.kose = (g.su + 1) * (g.sv + 1);
+  const n = g.yapraklar.length * g.kose;
   g.konum = new Float32Array(n * 3);
   g.normal = new Float32Array(n * 3);
   g.bilgi = new Float32Array(n * 4);
+  g.matris = new Float32Array(9);
+  g.yer = [0, 0, 0];
   g.faz = rastgele() * 6;
+  g.sonDurum = -1;
 });
 
 let salinimAci = 0;
-function donustur(g, x, y, z, cikti, k) {
+function matrisKur(g, zaman) {
   const b = g.boyNow;
-  x *= b; y *= b; z *= b;
-  const cy = g.cy, sy = g.sy, ce = g.ce, se = g.se, cr = g.cr, sr = g.sr;
-  const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
-  const y2 = y * ce - z1 * se, z2 = y * se + z1 * ce;
-  let x3 = x1 * cr - y2 * sr + g.x, y3 = x1 * sr + y2 * cr + g.y;
+  const yaw = g.yaw + Math.sin(zaman * 0.7 + g.faz) * 0.05 * g.sallan;
+  const yatik = g.yatik + Math.sin(zaman * 0.9 + g.faz) * 0.02 * g.sallan + salinimAci;
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const ce = Math.cos(g.egim), se = Math.sin(g.egim);
+  const cr = Math.cos(yatik), sr = Math.sin(yatik);
+  const sutun = (x, y, z) => {
+    const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+    const y2 = y * ce - z1 * se, z2 = y * se + z1 * ce;
+    return [(x1 * cr - y2 * sr) * b, (x1 * sr + y2 * cr) * b, z2 * b];
+  };
+  const m = g.matris;
+  const c0 = sutun(1, 0, 0), c1 = sutun(0, 1, 0), c2 = sutun(0, 0, 1);
+  m[0] = c0[0]; m[1] = c0[1]; m[2] = c0[2];
+  m[3] = c1[0]; m[4] = c1[1]; m[5] = c1[2];
+  m[6] = c2[0]; m[7] = c2[1]; m[8] = c2[2];
   const cs = Math.cos(salinimAci), ss = Math.sin(salinimAci);
-  const dx = x3 - BAG.x, dy = y3 - BAG.y;
-  cikti[k] = BAG.x + dx * cs - dy * ss;
-  cikti[k + 1] = BAG.y + dx * ss + dy * cs;
-  cikti[k + 2] = z2 + g.z;
+  const dx = g.x - BAG.x, dy = g.y - BAG.y;
+  g.yer[0] = BAG.x + dx * cs - dy * ss;
+  g.yer[1] = BAG.y + dx * ss + dy * cs;
+  g.yer[2] = g.z;
+}
+function uygula(g, x, y, z) {
+  const m = g.matris;
+  return [m[0] * x + m[3] * y + m[6] * z + g.yer[0], m[1] * x + m[4] * y + m[7] * z + g.yer[1], m[2] * x + m[5] * y + m[8] * z + g.yer[2]];
 }
 
 function yuzeyKur(g, yi, aci, p, sekil) {
-  const dizi = g.konum, bilgi = g.bilgi, taban = yi * KOSE;
+  const SU = g.su, SV = g.sv;
+  const dizi = g.konum, bilgi = g.bilgi, taban = yi * g.kose;
   for (let i = 0; i <= SU; i++) {
     const u = i / SU * 2 - 1;
     const boyOrani = sekil === 0 ? 0.6 + 0.4 * Math.sqrt(1 - u * u * 0.97) : 1;
@@ -177,7 +228,7 @@ function yuzeyKur(g, yi, aci, p, sekil) {
       const hh = h - Math.sin(phiS) * (rulo + kase);
       const a = aci + u * yariAci;
       const k = taban + i * (SV + 1) + j;
-      donustur(g, r * Math.cos(a), hh, r * Math.sin(a), dizi, k * 3);
+      dizi[k * 3] = r * Math.cos(a); dizi[k * 3 + 1] = hh; dizi[k * 3 + 2] = r * Math.sin(a);
       bilgi[k * 4] = j / SV;
       bilgi[k * 4 + 1] = u;
       bilgi[k * 4 + 2] = sekil === 0 ? p.t : 1;
@@ -187,10 +238,10 @@ function yuzeyKur(g, yi, aci, p, sekil) {
 }
 
 function normalleriKur(g) {
+  const SU = g.su, SV = g.sv;
   const d = g.konum, nr = g.normal;
-  const yuzey = g.yapraklar.length;
-  for (let s = 0; s < yuzey; s++) {
-    const tb = s * KOSE;
+  for (let s = 0; s < g.yapraklar.length; s++) {
+    const tb = s * g.kose;
     for (let i = 0; i <= SU; i++) for (let j = 0; j <= SV; j++) {
       const i0 = Math.max(0, i - 1), i1 = Math.min(SU, i + 1), j0 = Math.max(0, j - 1), j1 = Math.min(SV, j + 1);
       const p = (tb + i1 * (SV + 1) + j) * 3, m = (tb + i0 * (SV + 1) + j) * 3;
@@ -213,12 +264,15 @@ function gulKur(g, zaman) {
   const acBas = tomBas + AYARLAR.tomurcukSuresi * 0.7 + g.gecikme * 0.6;
   const ac = ilerleme(zaman, acBas, AYARLAR.acilmaSuresi * (0.6 + 0.4 * g.hedef)) * g.hedef;
   g.boyNow = g.boy * (0.2 + 0.8 * tom);
-  const yaw = g.yaw + Math.sin(zaman * 0.7 + g.faz) * 0.06 * g.sallan;
-  g.cy = Math.cos(yaw); g.sy = Math.sin(yaw);
-  g.ce = Math.cos(g.egim); g.se = Math.sin(g.egim);
-  const yatik = g.yatik + Math.sin(zaman * 0.9 + g.faz) * 0.025 * g.sallan;
-  g.cr = Math.cos(yatik); g.sr = Math.sin(yatik);
+  g.acNow = ac;
+  matrisKur(g, zaman);
   const canakAc = akici(ilerleme(zaman, acBas - 0.3, 1.4)) * (0.35 + 0.65 * Math.min(1, g.hedef * 1.6));
+  const durum = ac * 1000 + canakAc;
+  const tepe = uygula(g, 0, -0.2, 0);
+  g.sapUcu = [tepe[0], tepe[1]];
+  if (durum === g.sonDurum) return;
+  g.sonDurum = durum;
+  g.yenilendi = true;
   g.yapraklar.forEach((y, yi) => {
     if (y.tur === 0) {
       const k = akici(ilerleme(ac, y.baslama, 0.42));
@@ -234,25 +288,23 @@ function gulKur(g, zaman) {
     }
   });
   normalleriKur(g);
-  const tepe = new Float32Array(3);
-  donustur(g, 0, -0.2, 0, tepe, 0);
-  g.sapUcu = [tepe[0], tepe[1]];
 }
 
 const KOSE_GLSL = `
 attribute vec3 aKonum;
 attribute vec3 aNormal;
 attribute vec4 aBilgi;
+uniform mat3 uDonus;
+uniform vec3 uYer;
 uniform vec2 uOlcek;
 uniform vec2 uKaydir;
 varying vec3 vNormal;
 varying vec4 vBilgi;
-varying float vZ;
 void main() {
-  vNormal = aNormal;
+  vec3 p = uDonus * aKonum + uYer;
+  vNormal = uDonus * aNormal;
   vBilgi = aBilgi;
-  vZ = aKonum.z;
-  gl_Position = vec4(aKonum.x * uOlcek.x + uKaydir.x, aKonum.y * uOlcek.y + uKaydir.y, -aKonum.z * 0.12, 1.0);
+  gl_Position = vec4(p.x * uOlcek.x + uKaydir.x, p.y * uOlcek.y + uKaydir.y, -p.z * 0.12, 1.0);
 }`;
 
 const PIKSEL_GLSL = `
@@ -260,7 +312,6 @@ const PIKSEL_GLSL = `
 precision highp float;
 varying vec3 vNormal;
 varying vec4 vBilgi;
-varying float vZ;
 uniform vec3 uTac0;
 uniform vec3 uTac1;
 uniform vec3 uTac2;
@@ -269,6 +320,7 @@ uniform vec3 uYesil0;
 uniform vec3 uYesil1;
 uniform vec3 uIsik;
 uniform float uAlfa;
+uniform vec3 uTon;
 void main() {
   vec3 n = normalize(vNormal);
   bool arka = !gl_FrontFacing;
@@ -305,7 +357,8 @@ void main() {
     float sinir = 1.0 - max(abs(u), f);
     float genislik = fwidth(sinir) * 1.6;
     float cizgi = 1.0 - smoothstep(0.0, genislik, sinir);
-    renk = mix(renk, uGolge * 0.85, cizgi * 0.55);
+    renk = mix(renk, uGolge * 0.85, cizgi * 0.38);
+    renk *= uTon;
   }
   gl_FragColor = vec4(renk * uAlfa, uAlfa);
 }`;
@@ -332,19 +385,27 @@ gl.uniform3fv(birim('uTac2'), rgb(RENK.tac[2]));
 gl.uniform3fv(birim('uGolge'), rgb(palet.golge));
 gl.uniform3fv(birim('uYesil0'), rgb(RENK.yesil[0]));
 gl.uniform3fv(birim('uYesil1'), rgb(RENK.yesil[2]));
-gl.uniform3fv(birim('uIsik'), (() => { const v = [-0.4, 0.62, 0.68], l = Math.hypot(...v); return v.map(x => x / l); })());
+gl.uniform3fv(birim('uIsik'), (() => { const v = [-0.52, 0.7, 0.5], l = Math.hypot(...v); return v.map(x => x / l); })());
 const olcekYeri = birim('uOlcek'), kaydirYeri = birim('uKaydir'), alfaYeri = birim('uAlfa');
+const donusYeri = birim('uDonus'), yerYeri = birim('uYer'), tonYeri = birim('uTon');
 
-const indeksler = [];
-const yuzeySayisi = AYARLAR.yaprakSayisi + AYARLAR.canakYaprak;
-for (let s = 0; s < yuzeySayisi; s++) for (let i = 0; i < SU; i++) for (let j = 0; j < SV; j++) {
-  const a = s * KOSE + i * (SV + 1) + j, b = a + SV + 1;
-  indeksler.push(a, b, b + 1, a, b + 1, a + 1);
-}
-const indeksTamponu = gl.createBuffer();
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indeksTamponu);
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indeksler), gl.STATIC_DRAW);
+const indeksler = {};
 GULLER.forEach(g => {
+  const anahtar = g.su + 'x' + g.sv;
+  if (!indeksler[anahtar]) {
+    const liste = [];
+    const yuzey = 40;
+    for (let s = 0; s < yuzey; s++) for (let i = 0; i < g.su; i++) for (let j = 0; j < g.sv; j++) {
+      const a = s * g.kose + i * (g.sv + 1) + j, b = a + g.sv + 1;
+      liste.push(a, b, b + 1, a, b + 1, a + 1);
+    }
+    const tampon = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tampon);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(liste), gl.STATIC_DRAW);
+    indeksler[anahtar] = tampon;
+  }
+  g.indeks = indeksler[anahtar];
+  g.ucgen = g.yapraklar.length * g.su * g.sv * 6;
   g.tKonum = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.tKonum); gl.bufferData(gl.ARRAY_BUFFER, g.konum.byteLength, gl.DYNAMIC_DRAW);
   g.tNormal = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.tNormal); gl.bufferData(gl.ARRAY_BUFFER, g.normal.byteLength, gl.DYNAMIC_DRAW);
   g.tBilgi = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.tBilgi); gl.bufferData(gl.ARRAY_BUFFER, g.bilgi.byteLength, gl.DYNAMIC_DRAW);
@@ -395,13 +456,12 @@ function golgeCiz(g) {
   gl.bindBuffer(gl.ARRAY_BUFFER, koseTamponu);
   gl.enableVertexAttribArray(koseYeri);
   gl.vertexAttribPointer(koseYeri, 2, gl.FLOAT, false, 0, 0);
-  const cs = Math.cos(salinimAci), ss = Math.sin(salinimAci);
-  const dx = g.x + 0.05 - BAG.x, dy = g.y - 0.08 - BAG.y;
-  const x = BAG.x + dx * cs - dy * ss, y = BAG.y + dx * ss + dy * cs;
-  const r = g.boyNow * 1.25;
+  const x = g.yer[0] + 0.04, y = g.yer[1] - 0.06;
+  const acik = sinirla(g.acNow / 0.6);
+  const r = g.boyNow * (0.55 + 0.7 * acik);
   gl.uniform2f(golgeMerkez, (merkezX + x * olcek) * 2 / W - 1, 1 - (merkezY - y * olcek) * 2 / H);
   gl.uniform2f(golgeYaricap, r * olcek * 2 / W, r * olcek * 2 / H);
-  gl.uniform1f(golgeGuc, AYARLAR.golgeGucu * Math.min(1, g.boyNow / g.boy));
+  gl.uniform1f(golgeGuc, AYARLAR.golgeGucu * Math.min(1, g.boyNow / g.boy) * (0.25 + 0.75 * acik));
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.disableVertexAttribArray(koseYeri);
   gl.disable(gl.BLEND);
@@ -421,16 +481,25 @@ function gulleriCiz(zaman) {
   CIZIM_SIRASI.forEach(g => {
     if (!g.gorunur) return;
     golgeCiz(g);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.uniform2f(olcekYeri, olcek * 2 / W, olcek * 2 / H);
     gl.uniform2f(kaydirYeri, merkezX * 2 / W - 1, 1 - merkezY * 2 / H);
     gl.uniform1f(alfaYeri, 1);
-    gl.bindBuffer(gl.ARRAY_BUFFER, g.tKonum); gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.konum);
+    gl.uniformMatrix3fv(donusYeri, false, g.matris);
+    gl.uniform3fv(yerYeri, g.yer);
+    gl.uniform3fv(tonYeri, g.ton);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.tKonum);
+    if (g.yenilendi) gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.konum);
     gl.vertexAttribPointer(konumYeri, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, g.tNormal); gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.normal);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.tNormal);
+    if (g.yenilendi) gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.normal);
     gl.vertexAttribPointer(normalYeri, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, g.tBilgi); gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.bilgi);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.tBilgi);
+    if (g.yenilendi) gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.bilgi);
     gl.vertexAttribPointer(bilgiYeri, 4, gl.FLOAT, false, 0, 0);
-    gl.drawElements(gl.TRIANGLES, indeksler.length, gl.UNSIGNED_SHORT, 0);
+    g.yenilendi = false;
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g.indeks);
+    gl.drawElements(gl.TRIANGLES, g.ucgen, gl.UNSIGNED_SHORT, 0);
   });
 }
 
@@ -455,27 +524,28 @@ const yaprakcik = new Path2D(), yaprakcikUst = new Path2D(), damar = new Path2D(
   });
 })();
 
-const YAPRAKLAR = [
-  { x: -0.45, y: 0.3, aci: 2.75, boy: 0.62, gecikme: 0.1 },
-  { x: 0.45, y: 0.35, aci: 0.4, boy: 0.6, gecikme: 0.2 },
-  { x: -0.8, y: 1.2, aci: 2.35, boy: 0.56, gecikme: 0.35 },
-  { x: 0.8, y: 1.25, aci: 0.8, boy: 0.54, gecikme: 0.45 },
-  { x: -0.3, y: 1.6, aci: 2.35, boy: 0.44, gecikme: 0.5 },
-  { x: 0.32, y: 1.6, aci: 0.8, boy: 0.42, gecikme: 0.55 },
-  { x: -0.25, y: 0.02, aci: 3.3, boy: 0.5, gecikme: 0.15 },
-  { x: 0.25, y: 0.05, aci: -0.15, boy: 0.5, gecikme: 0.25 },
-  { x: -0.95, y: 0.55, aci: 2.75, boy: 0.4, gecikme: 0.4 },
-  { x: 0.95, y: 0.65, aci: 0.4, boy: 0.4, gecikme: 0.45 },
-  { x: -0.4, y: 1.25, aci: 2.2, boy: 0.5, gecikme: 0.5 },
-  { x: 0.42, y: 1.3, aci: 0.9, boy: 0.5, gecikme: 0.5 }
-];
+const YAPRAKLAR = [];
+(function () {
+  const n = AYARLAR.yesilYaprak;
+  for (let i = 0; i < n; i++) {
+    const a = -0.45 + (Math.PI + 0.9) * (i + 0.5) / n + (rastgele() - 0.5) * 0.15;
+    const r = 0.78 + rastgele() * 0.1;
+    YAPRAKLAR.push({
+      x: KUBBE.x + Math.cos(a) * KUBBE.rx * r, y: KUBBE.y + Math.sin(a) * KUBBE.ry * r,
+      aci: a + (rastgele() - 0.5) * 0.4, boy: 0.42 + rastgele() * 0.14, gecikme: 0.1 + rastgele() * 0.5
+    });
+  }
+  [[-0.22, -0.05, 3.5], [0.22, -0.02, -0.35], [-0.12, 0.25, 3.0], [0.14, 0.28, 0.15]].forEach(([x, y, aci]) => {
+    YAPRAKLAR.push({ x, y, aci, boy: 0.5, gecikme: 0.15 });
+  });
+})();
 
 const CIPSOLAR = [];
 (function () {
   for (let i = 0; i < AYARLAR.cipso; i++) {
-    const a = Math.PI * (0.06 + 0.88 * (i + 0.5) / AYARLAR.cipso) + (rastgele() - 0.5) * 0.12;
-    const r = 1.0 + rastgele() * 0.25;
-    const uc = { x: Math.cos(a) * r * 1.36, y: 1.0 + Math.sin(a) * r * 1.3 };
+    const a = -0.3 + (Math.PI + 0.6) * (i + 0.5) / AYARLAR.cipso + (rastgele() - 0.5) * 0.12;
+    const r = 1.14 + rastgele() * 0.2;
+    const uc = { x: KUBBE.x + Math.cos(a) * r * KUBBE.rx, y: KUBBE.y + Math.sin(a) * r * KUBBE.ry };
     const dallar = [];
     for (let k = 0; k < 4; k++) {
       const s = 0.55 + k * 0.13;
@@ -513,10 +583,10 @@ function boyutla() {
   W = window.innerWidth; H = window.innerHeight;
   [zeminTuval, gulTuval].forEach(c => { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); });
   const yaziPayi = yazi ? 0.1 : 0;
-  olcek = Math.min(W * 0.92 / 3.15, H * (0.9 - yaziPayi) / 4.6);
+  olcek = Math.min(W * 0.94 / 3.7, H * (0.9 - yaziPayi) / 4.95);
   merkezX = W / 2;
-  merkezY = H * (0.5 - yaziPayi / 2) + 0.22 * olcek;
-  yaziKutusu.style.top = (merkezY + 2.05 * olcek + Math.max(20, olcek * 0.1)) + 'px';
+  merkezY = H * (0.5 - yaziPayi / 2) + 0.35 * olcek;
+  yaziKutusu.style.top = (merkezY + 2.15 * olcek + Math.max(20, olcek * 0.1)) + 'px';
   yaziKutusu.style.fontSize = Math.max(20, Math.min(olcek * 0.12, W * 0.045, 52)) + 'px';
 }
 window.addEventListener('resize', boyutla);
@@ -547,7 +617,8 @@ function salinimUygula() {
 
 function sapYolu(g, i) {
   const ust = g.sapUcu || [g.x, g.y - 0.2 * g.boy];
-  const bx = BAG.x + (i - 3.5) * 0.018, alt = [BAG.x + (i - 3.5) * 0.065, -1.95 - (i % 3) * 0.04];
+  const m = (GULLER.length - 1) / 2;
+  const bx = BAG.x + (i - m) * 0.008, alt = [BAG.x + (i - m) * 0.024, -2.05 - (i % 3) * 0.04];
   return { ust, bag: [bx, BAG.y], alt };
 }
 
@@ -568,7 +639,7 @@ function saplariCiz(zaman) {
       noktalar.push([u * u * y.bag[0] + 2 * u * t * kx + t * t * y.ust[0], u * u * y.bag[1] + 2 * u * t * ky + t * t * y.ust[1]]);
     }
     const son = Math.max(1, Math.floor(p * (noktalar.length - 1)));
-    [[RENK.sap[0], 0.05, 0], [RENK.sap[1], 0.036, -0.004], [RENK.sap[2], 0.012, -0.011]].forEach(([renk, kalin, kay]) => {
+    [[RENK.sap[0], 0.042, 0], [RENK.sap[1], 0.03, -0.004], [RENK.sap[2], 0.01, -0.009]].forEach(([renk, kalin, kay]) => {
       ctx.strokeStyle = renk;
       ctx.lineWidth = kalin * O();
       ctx.beginPath();
@@ -660,7 +731,7 @@ function kurdeleCiz(zaman) {
   if (p <= 0) return;
   const ana = hex(palet.kurdele);
   const acik = renkYaz(karistir(ana, [255, 255, 255], 0.35)), koyu = renkYaz(karistir(ana, [40, 30, 25], 0.35));
-  const x = SX(BAG.x), y = SY(BAG.y), o = O() * 1.35 * (0.6 + 0.4 * p);
+  const x = SX(BAG.x), y = SY(BAG.y), o = O() * 1.5 * (0.6 + 0.4 * p);
   ctx.save();
   ctx.globalAlpha = p;
   ctx.translate(x, y);
