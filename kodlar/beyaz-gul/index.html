@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>beyaz güller</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #080d1a; overflow: hidden; }
+  canvas { position: fixed; left: 0; top: 0; display: block; width: 100vw; height: 100vh; }
+  body.imlec-gizli { cursor: none; }
+
+  #yazi {
+    position: fixed; left: 0; right: 0; text-align: center;
+    color: rgba(255, 252, 245, 0.92);
+    font-family: "Segoe UI Light", "Segoe UI", "Helvetica Neue", "Work Sans", Arial, sans-serif;
+    font-weight: 300; letter-spacing: 0.12em;
+    opacity: 0; transition: opacity 1.8s ease;
+    pointer-events: none; user-select: none; padding: 0 6vw;
+    text-wrap: balance;
+  }
+  #yazi.gorunur { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="zemin"></canvas>
+<canvas id="guller"></canvas>
+<div id="yazi"></div>
+
+<script>
+const AYARLAR = {
+  yaprakSayisi: 28,
+  canakYaprak: 5,
+  parilti: 40,
+  cipso: 12,
+  sapSuresi: 1.4,
+  tomurcukSuresi: 1.0,
+  acilmaSuresi: 3.0,
+  salinim: 1,
+  kurdele: true,
+  golgeGucu: 0.42
+};
+
+const PALETLER = {
+  adacayi: { ad: 'Adaçayı', zemin: ['#7d9283', '#4e6556', '#26352b'], golge: '#7f8676', kurdele: '#efe6d2', toz: '255,244,220' },
+  gece: { ad: 'Gece Mavisi', zemin: ['#3a4b6e', '#1b2640', '#080d1a'], golge: '#878491', kurdele: '#d9c7a0', toz: '255,240,210' },
+  bordo: { ad: 'Bordo', zemin: ['#7a3342', '#4a1a26', '#22090f'], golge: '#8f7a76', kurdele: '#dcc49d', toz: '255,236,214' },
+  murdum: { ad: 'Mürdüm', zemin: ['#6c5878', '#3f3149', '#1c1422'], golge: '#857b88', kurdele: '#e8dccb', toz: '255,240,225' }
+};
+const VARSAYILAN_PALET = 'bordo';
+
+const RENK = {
+  tac: ['#e9dcb8', '#f7f1e2', '#fffdf8'],
+  yesil: ['#132a17', '#264f2c', '#447f45', '#86b874'],
+  sap: ['#1d3a20', '#2f5a33', '#5c8f55']
+};
+
+const parametreler = new URLSearchParams(location.search);
+const kayitModu = parametreler.has('kayit');
+const palet = PALETLER[parametreler.get('palet')] || PALETLER[VARSAYILAN_PALET];
+const yazi = (parametreler.get('text') || '').slice(0, 80);
+const yaziKutusu = document.getElementById('yazi');
+yaziKutusu.textContent = yazi;
+document.body.style.background = palet.zemin[2];
+
+const zeminTuval = document.getElementById('zemin');
+const ctx = zeminTuval.getContext('2d');
+const gulTuval = document.getElementById('guller');
+const gl = gulTuval.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true });
+gl.getExtension('OES_standard_derivatives');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W = 0, H = 0, olcek = 1, merkezX = 0, merkezY = 0;
+
+const sinirla = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const yumusak = x => 1 - Math.pow(1 - x, 3);
+const akici = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const gecis = (a, b, x) => { const t = sinirla((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const ilerleme = (t, bas, sure) => sinirla((t - bas) / sure);
+const ara = (a, b, k) => a + (b - a) * k;
+let tohum = 23;
+const rastgele = () => (tohum = (tohum * 16807) % 2147483647) / 2147483647;
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const renkYaz = (c, a = 1) => 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a + ')';
+const karistir = (a, b, k) => [ara(a[0], b[0], k), ara(a[1], b[1], k), ara(a[2], b[2], k)];
+
+const BAG = { x: 0, y: -0.32 };
+
+const GULLER = [
+  { x: 0.018, y: 1.422, z: -0.5, boy: 0.663, egim: 0.42, yaw: 0.1, yatik: -0.04, hedef: 1, gecikme: 0.2 },
+  { x: -0.558, y: 1.818, z: -0.7, boy: 0.482, egim: 0.22, yaw: 0.3, yatik: 0.28, hedef: 0.26, gecikme: 0.7 },
+  { x: 0.612, y: 1.744, z: -0.7, boy: 0.514, egim: 0.32, yaw: 0.5, yatik: -0.3, hedef: 0.55, gecikme: 1.3 },
+  { x: -0.648, y: 0.962, z: 0.1, boy: 0.642, egim: 0.45, yaw: -0.4, yatik: 0.3, hedef: 1, gecikme: 0.9 },
+  { x: 0.666, y: 1.026, z: 0.1, boy: 0.621, egim: 0.48, yaw: 0.7, yatik: -0.32, hedef: 1, gecikme: 1.15 },
+  { x: -0.9, y: 0.364, z: 0.4, boy: 0.514, egim: 0.5, yaw: -0.2, yatik: 0.5, hedef: 0.75, gecikme: 1.6 },
+  { x: 0.882, y: 0.456, z: 0.35, boy: 0.449, egim: 0.3, yaw: 0.2, yatik: -0.55, hedef: 0.3, gecikme: 1.0 },
+  { x: 0.0, y: 0.658, z: 0.8, boy: 0.728, egim: 0.6, yaw: 0.25, yatik: 0.0, hedef: 1, gecikme: 0.5 }
+];
+
+const SU = 16, SV = 14;
+const KOSE = (SU + 1) * (SV + 1);
+
+function yaprakTanimla() {
+  const liste = [];
+  for (let i = 0; i < AYARLAR.yaprakSayisi; i++) {
+    const t = i / (AYARLAR.yaprakSayisi - 1);
+    liste.push({
+      t, tur: 0,
+      aci: i * 2.39996 + (rastgele() - 0.5) * 0.3,
+      tomurcuk: {
+        boy: 0.34 + 0.3 * t, taban: 0.01 + 0.07 * t, yukseklik: -0.04 * t,
+        aci0: 0.06 + 0.32 * t, aci1: -0.6 - 0.12 * t, kivrim: 0, rulo: 0, kase: 0,
+        genislik: ara(4.4, 3.0, t)
+      },
+      acik: {
+        boy: (0.44 + 0.7 * Math.pow(t, 0.8)) * (0.94 + rastgele() * 0.12),
+        taban: 0.012 + 0.11 * t, yukseklik: -0.14 * t,
+        aci0: 0.04 + 0.68 * Math.pow(t, 1.6),
+        aci1: -0.48 + 1.25 * Math.pow(t, 1.3),
+        kivrim: 1.15 * gecis(0.45, 1, t),
+        rulo: 0.3 * gecis(0.3, 1, t),
+        kase: 1,
+        genislik: ara(4.3, 2.05, Math.pow(t, 0.7))
+      },
+      baslama: (1 - t) * 0.62 + rastgele() * 0.05
+    });
+  }
+  for (let i = 0; i < AYARLAR.canakYaprak; i++) {
+    liste.push({ t: 1, tur: 1, aci: i * Math.PI * 2 / AYARLAR.canakYaprak + 0.4, boy: 0.34 + rastgele() * 0.06 });
+  }
+  return liste;
+}
+
+GULLER.forEach(g => {
+  g.yapraklar = yaprakTanimla();
+  const n = g.yapraklar.length * KOSE;
+  g.konum = new Float32Array(n * 3);
+  g.normal = new Float32Array(n * 3);
+  g.bilgi = new Float32Array(n * 4);
+  g.faz = rastgele() * 6;
+});
+
+let salinimAci = 0;
+function donustur(g, x, y, z, cikti, k) {
+  const b = g.boyNow;
+  x *= b; y *= b; z *= b;
+  const cy = g.cy, sy = g.sy, ce = g.ce, se = g.se, cr = g.cr, sr = g.sr;
+  const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+  const y2 = y * ce - z1 * se, z2 = y * se + z1 * ce;
+  let x3 = x1 * cr - y2 * sr + g.x, y3 = x1 * sr + y2 * cr + g.y;
+  const cs = Math.cos(salinimAci), ss = Math.sin(salinimAci);
+  const dx = x3 - BAG.x, dy = y3 - BAG.y;
+  cikti[k] = BAG.x + dx * cs - dy * ss;
+  cikti[k + 1] = BAG.y + dx * ss + dy * cs;
+  cikti[k + 2] = z2 + g.z;
+}
+
+function yuzeyKur(g, yi, aci, p, sekil) {
+  const dizi = g.konum, bilgi = g.bilgi, taban = yi * KOSE;
+  for (let i = 0; i <= SU; i++) {
+    const u = i / SU * 2 - 1;
+    const boyOrani = sekil === 0 ? 0.6 + 0.4 * Math.sqrt(1 - u * u * 0.97) : 1;
+    let rho = p.taban, h = p.yukseklik;
+    const adim = p.boy * boyOrani / SV;
+    for (let j = 0; j <= SV; j++) {
+      const f = j / SV * boyOrani;
+      if (j > 0) {
+        const fo = (j - 0.5) / SV * boyOrani;
+        const phi = p.aci0 + (p.aci1 - p.aci0) * fo + p.kivrim * Math.pow(Math.max(0, (fo - 0.58) / 0.42), 2);
+        rho += Math.sin(phi) * adim; h += Math.cos(phi) * adim;
+      }
+      const phiS = p.aci0 + (p.aci1 - p.aci0) * f + p.kivrim * Math.pow(Math.max(0, (f - 0.58) / 0.42), 2);
+      let yariAci;
+      if (sekil === 0) yariAci = p.genislik / 2 * (0.4 + 0.6 * Math.sin(Math.min(1, f / 0.72) * Math.PI / 2));
+      else yariAci = p.genislik / 2 * Math.pow(Math.sin(Math.PI * Math.min(0.999, 0.12 + f * 0.88)), 0.7) * (1 - f * 0.55);
+      const rulo = p.rulo * Math.pow(Math.abs(u), 2.6) * Math.pow(f, 1.4);
+      const kase = sekil === 0 ? p.boy * 0.09 * (1 - u * u) * Math.sin(Math.PI * Math.min(1, f * 1.1)) * p.taban * 8 * p.kase : 0;
+      const r = Math.max(rho + Math.cos(phiS) * (rulo + kase), 0.004);
+      const hh = h - Math.sin(phiS) * (rulo + kase);
+      const a = aci + u * yariAci;
+      const k = taban + i * (SV + 1) + j;
+      donustur(g, r * Math.cos(a), hh, r * Math.sin(a), dizi, k * 3);
+      bilgi[k * 4] = j / SV;
+      bilgi[k * 4 + 1] = u;
+      bilgi[k * 4 + 2] = sekil === 0 ? p.t : 1;
+      bilgi[k * 4 + 3] = sekil;
+    }
+  }
+}
+
+function normalleriKur(g) {
+  const d = g.konum, nr = g.normal;
+  const yuzey = g.yapraklar.length;
+  for (let s = 0; s < yuzey; s++) {
+    const tb = s * KOSE;
+    for (let i = 0; i <= SU; i++) for (let j = 0; j <= SV; j++) {
+      const i0 = Math.max(0, i - 1), i1 = Math.min(SU, i + 1), j0 = Math.max(0, j - 1), j1 = Math.min(SV, j + 1);
+      const p = (tb + i1 * (SV + 1) + j) * 3, m = (tb + i0 * (SV + 1) + j) * 3;
+      const q = (tb + i * (SV + 1) + j1) * 3, w = (tb + i * (SV + 1) + j0) * 3;
+      const ux = d[p] - d[m], uy = d[p + 1] - d[m + 1], uz = d[p + 2] - d[m + 2];
+      const vx = d[q] - d[w], vy = d[q + 1] - d[w + 1], vz = d[q + 2] - d[w + 2];
+      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      const l = Math.hypot(nx, ny, nz) || 1;
+      const k = (tb + i * (SV + 1) + j) * 3;
+      nr[k] = nx / l; nr[k + 1] = ny / l; nr[k + 2] = nz / l;
+    }
+  }
+}
+
+function gulKur(g, zaman) {
+  const tomBas = AYARLAR.sapSuresi * 0.75 + g.gecikme * 0.4;
+  const tom = yumusak(ilerleme(zaman, tomBas, AYARLAR.tomurcukSuresi));
+  g.gorunur = tom > 0;
+  if (!g.gorunur) return;
+  const acBas = tomBas + AYARLAR.tomurcukSuresi * 0.7 + g.gecikme * 0.6;
+  const ac = ilerleme(zaman, acBas, AYARLAR.acilmaSuresi * (0.6 + 0.4 * g.hedef)) * g.hedef;
+  g.boyNow = g.boy * (0.2 + 0.8 * tom);
+  const yaw = g.yaw + Math.sin(zaman * 0.7 + g.faz) * 0.06 * g.sallan;
+  g.cy = Math.cos(yaw); g.sy = Math.sin(yaw);
+  g.ce = Math.cos(g.egim); g.se = Math.sin(g.egim);
+  const yatik = g.yatik + Math.sin(zaman * 0.9 + g.faz) * 0.025 * g.sallan;
+  g.cr = Math.cos(yatik); g.sr = Math.sin(yatik);
+  const canakAc = akici(ilerleme(zaman, acBas - 0.3, 1.4)) * (0.35 + 0.65 * Math.min(1, g.hedef * 1.6));
+  g.yapraklar.forEach((y, yi) => {
+    if (y.tur === 0) {
+      const k = akici(ilerleme(ac, y.baslama, 0.42));
+      const p = { t: y.t };
+      for (const ad in y.tomurcuk) p[ad] = ara(y.tomurcuk[ad], y.acik[ad], k);
+      yuzeyKur(g, yi, y.aci, p, 0);
+    } else {
+      const p = {
+        boy: y.boy * (0.75 + 0.25 * canakAc), taban: 0.06, yukseklik: -0.12,
+        aci0: ara(0.35, 2.2, canakAc), aci1: ara(-0.4, 2.9, canakAc), kivrim: 0.2 * canakAc, rulo: 0, kase: 0, genislik: 0.42
+      };
+      yuzeyKur(g, yi, y.aci, p, 1);
+    }
+  });
+  normalleriKur(g);
+  const tepe = new Float32Array(3);
+  donustur(g, 0, -0.2, 0, tepe, 0);
+  g.sapUcu = [tepe[0], tepe[1]];
+}
+
+const KOSE_GLSL = `
+attribute vec3 aKonum;
+attribute vec3 aNormal;
+attribute vec4 aBilgi;
+uniform vec2 uOlcek;
+uniform vec2 uKaydir;
+varying vec3 vNormal;
+varying vec4 vBilgi;
+varying float vZ;
+void main() {
+  vNormal = aNormal;
+  vBilgi = aBilgi;
+  vZ = aKonum.z;
+  gl_Position = vec4(aKonum.x * uOlcek.x + uKaydir.x, aKonum.y * uOlcek.y + uKaydir.y, -aKonum.z * 0.12, 1.0);
+}`;
+
+const PIKSEL_GLSL = `
+#extension GL_OES_standard_derivatives : enable
+precision highp float;
+varying vec3 vNormal;
+varying vec4 vBilgi;
+varying float vZ;
+uniform vec3 uTac0;
+uniform vec3 uTac1;
+uniform vec3 uTac2;
+uniform vec3 uGolge;
+uniform vec3 uYesil0;
+uniform vec3 uYesil1;
+uniform vec3 uIsik;
+uniform float uAlfa;
+void main() {
+  vec3 n = normalize(vNormal);
+  bool arka = !gl_FrontFacing;
+  if (arka) n = -n;
+  float f = vBilgi.x;
+  float u = vBilgi.y;
+  float t = vBilgi.z;
+  float yuz = abs(n.z);
+  float ndl = dot(n, uIsik);
+  float dif = clamp((ndl + 0.4) / 1.4, 0.0, 1.0);
+  dif += max(0.0, -n.y) * 0.18;
+  float kenar = 0.84 + 0.16 * sqrt(yuz);
+  vec3 renk;
+  if (vBilgi.w > 0.5) {
+    float l = (0.32 + 0.68 * dif) * kenar;
+    renk = mix(uYesil0, uYesil1, clamp(l, 0.0, 1.0));
+  } else {
+    float derin = (0.66 + 0.34 * smoothstep(0.0, 0.65, f)) * (0.86 + 0.14 * smoothstep(0.0, 0.5, t) + 0.12 * f * (1.0 - t));
+    float l = (0.4 + 0.6 * dif) * kenar * min(1.0, derin);
+    if (arka) l *= 0.96;
+    float damar = 1.0 - 0.012 * (0.5 + 0.5 * sin(u * 34.0 + f * 4.0)) * smoothstep(0.1, 0.9, f);
+    l *= damar;
+    vec3 taban = mix(uTac0, uTac1, smoothstep(0.0, 0.42, f));
+    taban = mix(taban, uTac2, smoothstep(0.38, 1.0, f));
+    float l2 = clamp(l * 1.08, 0.0, 1.0);
+    vec3 sicak = mix(uGolge, vec3(0.86, 0.80, 0.70), 0.35);
+    vec3 golge = mix(uGolge, sicak, smoothstep(0.2, 0.8, f));
+    renk = mix(golge, taban, l2);
+    float gecirgen = max(0.0, -ndl) * smoothstep(0.3, 1.0, f) * 0.12;
+    renk += vec3(1.0, 0.93, 0.8) * gecirgen;
+    float uc = smoothstep(0.86, 1.0, max(abs(u), f));
+    renk = mix(renk, renk * vec3(0.9, 0.88, 0.86), uc * 0.35 * (1.0 - smoothstep(0.85, 1.0, l)));
+    if (l > 0.86) renk = mix(renk, vec3(1.0, 0.996, 0.98), min(1.0, (l - 0.86) * 3.0));
+    float sinir = 1.0 - max(abs(u), f);
+    float genislik = fwidth(sinir) * 1.6;
+    float cizgi = 1.0 - smoothstep(0.0, genislik, sinir);
+    renk = mix(renk, uGolge * 0.85, cizgi * 0.55);
+  }
+  gl_FragColor = vec4(renk * uAlfa, uAlfa);
+}`;
+
+function golgelendirici(tur, kaynak) {
+  const s = gl.createShader(tur);
+  gl.shaderSource(s, kaynak); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const program = gl.createProgram();
+gl.attachShader(program, golgelendirici(gl.VERTEX_SHADER, KOSE_GLSL));
+gl.attachShader(program, golgelendirici(gl.FRAGMENT_SHADER, PIKSEL_GLSL));
+gl.linkProgram(program);
+gl.useProgram(program);
+const konumYeri = gl.getAttribLocation(program, 'aKonum');
+const normalYeri = gl.getAttribLocation(program, 'aNormal');
+const bilgiYeri = gl.getAttribLocation(program, 'aBilgi');
+const birim = ad => gl.getUniformLocation(program, ad);
+const rgb = h => hex(h).map(v => v / 255);
+gl.uniform3fv(birim('uTac0'), rgb(RENK.tac[0]));
+gl.uniform3fv(birim('uTac1'), rgb(RENK.tac[1]));
+gl.uniform3fv(birim('uTac2'), rgb(RENK.tac[2]));
+gl.uniform3fv(birim('uGolge'), rgb(palet.golge));
+gl.uniform3fv(birim('uYesil0'), rgb(RENK.yesil[0]));
+gl.uniform3fv(birim('uYesil1'), rgb(RENK.yesil[2]));
+gl.uniform3fv(birim('uIsik'), (() => { const v = [-0.4, 0.62, 0.68], l = Math.hypot(...v); return v.map(x => x / l); })());
+const olcekYeri = birim('uOlcek'), kaydirYeri = birim('uKaydir'), alfaYeri = birim('uAlfa');
+
+const indeksler = [];
+const yuzeySayisi = AYARLAR.yaprakSayisi + AYARLAR.canakYaprak;
+for (let s = 0; s < yuzeySayisi; s++) for (let i = 0; i < SU; i++) for (let j = 0; j < SV; j++) {
+  const a = s * KOSE + i * (SV + 1) + j, b = a + SV + 1;
+  indeksler.push(a, b, b + 1, a, b + 1, a + 1);
+}
+const indeksTamponu = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indeksTamponu);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indeksler), gl.STATIC_DRAW);
+GULLER.forEach(g => {
+  g.tKonum = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.tKonum); gl.bufferData(gl.ARRAY_BUFFER, g.konum.byteLength, gl.DYNAMIC_DRAW);
+  g.tNormal = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.tNormal); gl.bufferData(gl.ARRAY_BUFFER, g.normal.byteLength, gl.DYNAMIC_DRAW);
+  g.tBilgi = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.tBilgi); gl.bufferData(gl.ARRAY_BUFFER, g.bilgi.byteLength, gl.DYNAMIC_DRAW);
+});
+gl.enable(gl.DEPTH_TEST);
+gl.enableVertexAttribArray(konumYeri);
+gl.enableVertexAttribArray(normalYeri);
+gl.enableVertexAttribArray(bilgiYeri);
+
+const GOLGE_KOSE = `
+attribute vec2 aKose;
+uniform vec2 uMerkez;
+uniform vec2 uYaricap;
+varying vec2 vYer;
+void main() {
+  vYer = aKose;
+  gl_Position = vec4(uMerkez + aKose * uYaricap, 0.0, 1.0);
+}`;
+const GOLGE_PIKSEL = `
+precision mediump float;
+varying vec2 vYer;
+uniform float uGuc;
+void main() {
+  float r = length(vYer);
+  float a = uGuc * pow(1.0 - smoothstep(0.0, 1.0, r), 1.6);
+  gl_FragColor = vec4(0.0, 0.0, 0.0, a);
+}`;
+const golgeProgrami = gl.createProgram();
+gl.attachShader(golgeProgrami, golgelendirici(gl.VERTEX_SHADER, GOLGE_KOSE));
+gl.attachShader(golgeProgrami, golgelendirici(gl.FRAGMENT_SHADER, GOLGE_PIKSEL));
+gl.linkProgram(golgeProgrami);
+const koseYeri = gl.getAttribLocation(golgeProgrami, 'aKose');
+const golgeMerkez = gl.getUniformLocation(golgeProgrami, 'uMerkez');
+const golgeYaricap = gl.getUniformLocation(golgeProgrami, 'uYaricap');
+const golgeGuc = gl.getUniformLocation(golgeProgrami, 'uGuc');
+const koseTamponu = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, koseTamponu);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const CIZIM_SIRASI = GULLER.slice().sort((a, b) => a.z - b.z);
+
+function golgeCiz(g) {
+  gl.useProgram(golgeProgrami);
+  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disableVertexAttribArray(normalYeri);
+  gl.disableVertexAttribArray(bilgiYeri);
+  gl.bindBuffer(gl.ARRAY_BUFFER, koseTamponu);
+  gl.enableVertexAttribArray(koseYeri);
+  gl.vertexAttribPointer(koseYeri, 2, gl.FLOAT, false, 0, 0);
+  const cs = Math.cos(salinimAci), ss = Math.sin(salinimAci);
+  const dx = g.x + 0.05 - BAG.x, dy = g.y - 0.08 - BAG.y;
+  const x = BAG.x + dx * cs - dy * ss, y = BAG.y + dx * ss + dy * cs;
+  const r = g.boyNow * 1.25;
+  gl.uniform2f(golgeMerkez, (merkezX + x * olcek) * 2 / W - 1, 1 - (merkezY - y * olcek) * 2 / H);
+  gl.uniform2f(golgeYaricap, r * olcek * 2 / W, r * olcek * 2 / H);
+  gl.uniform1f(golgeGuc, AYARLAR.golgeGucu * Math.min(1, g.boyNow / g.boy));
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.disableVertexAttribArray(koseYeri);
+  gl.disable(gl.BLEND);
+  gl.enable(gl.DEPTH_TEST);
+  gl.useProgram(program);
+  gl.enableVertexAttribArray(konumYeri);
+  gl.enableVertexAttribArray(normalYeri);
+  gl.enableVertexAttribArray(bilgiYeri);
+}
+
+function gulleriCiz(zaman) {
+  gl.viewport(0, 0, gulTuval.width, gulTuval.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.uniform2f(olcekYeri, olcek * 2 / W, olcek * 2 / H);
+  gl.uniform2f(kaydirYeri, merkezX * 2 / W - 1, 1 - merkezY * 2 / H);
+  CIZIM_SIRASI.forEach(g => {
+    if (!g.gorunur) return;
+    golgeCiz(g);
+    gl.uniform2f(olcekYeri, olcek * 2 / W, olcek * 2 / H);
+    gl.uniform2f(kaydirYeri, merkezX * 2 / W - 1, 1 - merkezY * 2 / H);
+    gl.uniform1f(alfaYeri, 1);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.tKonum); gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.konum);
+    gl.vertexAttribPointer(konumYeri, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.tNormal); gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.normal);
+    gl.vertexAttribPointer(normalYeri, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.tBilgi); gl.bufferSubData(gl.ARRAY_BUFFER, 0, g.bilgi);
+    gl.vertexAttribPointer(bilgiYeri, 4, gl.FLOAT, false, 0, 0);
+    gl.drawElements(gl.TRIANGLES, indeksler.length, gl.UNSIGNED_SHORT, 0);
+  });
+}
+
+const yaprakcik = new Path2D(), yaprakcikUst = new Path2D(), damar = new Path2D();
+(function () {
+  const ust = [], alt = [];
+  for (let i = 0; i <= 90; i++) {
+    const s = i / 90;
+    let en = 0.3 * Math.pow(Math.sin(Math.PI * Math.pow(s, 0.85)), 0.85) * (1 - 0.15 * s);
+    if (s > 0.12 && s < 0.94) en *= 1 - 0.09 * ((s * 11) % 1);
+    ust.push([s, -en]); alt.push([s, en * 0.94]);
+  }
+  yaprakcik.moveTo(0, 0); yaprakcikUst.moveTo(0, 0);
+  ust.forEach(p => { yaprakcik.lineTo(p[0], p[1]); yaprakcikUst.lineTo(p[0], p[1]); });
+  for (let i = alt.length - 1; i >= 0; i--) yaprakcik.lineTo(alt[i][0], alt[i][1]);
+  yaprakcik.closePath();
+  yaprakcikUst.lineTo(1, 0); yaprakcikUst.closePath();
+  damar.moveTo(0.02, 0); damar.lineTo(0.95, 0);
+  [0.2, 0.36, 0.52, 0.68, 0.82].forEach(s => {
+    damar.moveTo(s, 0); damar.quadraticCurveTo(s + 0.07, -0.08, s + 0.12, -0.19 * Math.sin(Math.PI * s));
+    damar.moveTo(s, 0); damar.quadraticCurveTo(s + 0.07, 0.08, s + 0.12, 0.18 * Math.sin(Math.PI * s));
+  });
+})();
+
+const YAPRAKLAR = [
+  { x: -0.45, y: 0.3, aci: 2.75, boy: 0.62, gecikme: 0.1 },
+  { x: 0.45, y: 0.35, aci: 0.4, boy: 0.6, gecikme: 0.2 },
+  { x: -0.8, y: 1.2, aci: 2.35, boy: 0.56, gecikme: 0.35 },
+  { x: 0.8, y: 1.25, aci: 0.8, boy: 0.54, gecikme: 0.45 },
+  { x: -0.3, y: 1.6, aci: 2.35, boy: 0.44, gecikme: 0.5 },
+  { x: 0.32, y: 1.6, aci: 0.8, boy: 0.42, gecikme: 0.55 },
+  { x: -0.25, y: 0.02, aci: 3.3, boy: 0.5, gecikme: 0.15 },
+  { x: 0.25, y: 0.05, aci: -0.15, boy: 0.5, gecikme: 0.25 },
+  { x: -0.95, y: 0.55, aci: 2.75, boy: 0.4, gecikme: 0.4 },
+  { x: 0.95, y: 0.65, aci: 0.4, boy: 0.4, gecikme: 0.45 },
+  { x: -0.4, y: 1.25, aci: 2.2, boy: 0.5, gecikme: 0.5 },
+  { x: 0.42, y: 1.3, aci: 0.9, boy: 0.5, gecikme: 0.5 }
+];
+
+const CIPSOLAR = [];
+(function () {
+  for (let i = 0; i < AYARLAR.cipso; i++) {
+    const a = Math.PI * (0.06 + 0.88 * (i + 0.5) / AYARLAR.cipso) + (rastgele() - 0.5) * 0.12;
+    const r = 1.0 + rastgele() * 0.25;
+    const uc = { x: Math.cos(a) * r * 1.36, y: 1.0 + Math.sin(a) * r * 1.3 };
+    const dallar = [];
+    for (let k = 0; k < 4; k++) {
+      const s = 0.55 + k * 0.13;
+      const ba = a + (rastgele() - 0.5) * 1.6;
+      const bl = 0.12 + rastgele() * 0.14;
+      const cicekler = [];
+      const sayi = 6 + Math.floor(rastgele() * 7);
+      for (let m = 0; m < sayi; m++) cicekler.push([(rastgele() - 0.5) * 0.14, (rastgele() - 0.5) * 0.12, 0.014 + rastgele() * 0.014]);
+      dallar.push({ s, aci: ba, boy: bl, cicekler });
+    }
+    CIPSOLAR.push({ uc, dallar, gecikme: rastgele() * 0.8 });
+  }
+})();
+
+const isiklar = [];
+for (let i = 0; i < AYARLAR.parilti; i++) isiklar.push({ x: 0, y: 0, hiz: 0, omur: 0, yas: 1, boy: 1, faz: 0, kayma: 0 });
+function isikDogur(p, dagit) {
+  p.x = (rastgele() - 0.5) * 3.4; p.y = -2.4 + rastgele() * 4.8;
+  p.hiz = 0.04 + rastgele() * 0.1; p.omur = 3 + rastgele() * 4;
+  p.yas = dagit ? rastgele() * p.omur : 0;
+  p.boy = 0.4 + rastgele() * 0.9; p.faz = rastgele() * 10; p.kayma = (rastgele() - 0.5) * 0.08;
+}
+const toz = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grad.addColorStop(0.2, 'rgba(' + palet.toz + ',0.6)');
+  grad.addColorStop(0.55, 'rgba(' + palet.toz + ',0.12)');
+  grad.addColorStop(1, 'rgba(' + palet.toz + ',0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+  return c;
+})();
+
+function boyutla() {
+  W = window.innerWidth; H = window.innerHeight;
+  [zeminTuval, gulTuval].forEach(c => { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); });
+  const yaziPayi = yazi ? 0.1 : 0;
+  olcek = Math.min(W * 0.92 / 3.15, H * (0.9 - yaziPayi) / 4.6);
+  merkezX = W / 2;
+  merkezY = H * (0.5 - yaziPayi / 2) + 0.22 * olcek;
+  yaziKutusu.style.top = (merkezY + 2.05 * olcek + Math.max(20, olcek * 0.1)) + 'px';
+  yaziKutusu.style.fontSize = Math.max(20, Math.min(olcek * 0.12, W * 0.045, 52)) + 'px';
+}
+window.addEventListener('resize', boyutla);
+
+const SX = x => (merkezX + x * olcek) * DPR, SY = y => (merkezY - y * olcek) * DPR;
+const O = () => olcek * DPR;
+
+function zeminCiz() {
+  const z = palet.zemin, w = zeminTuval.width, h = zeminTuval.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const g = ctx.createRadialGradient(SX(0), SY(1.1), 0, SX(0), SY(0.6), Math.hypot(w, h) * 0.6);
+  g.addColorStop(0, z[0]); g.addColorStop(0.5, z[1]); g.addColorStop(1, z[2]);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  const hale = ctx.createRadialGradient(SX(0), SY(1.1), 0, SX(0), SY(1.1), 2.0 * O());
+  hale.addColorStop(0, 'rgba(255,248,235,0.12)');
+  hale.addColorStop(1, 'rgba(255,248,235,0)');
+  ctx.fillStyle = hale;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function salinimUygula() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.translate(SX(BAG.x), SY(BAG.y));
+  ctx.rotate(-salinimAci);
+  ctx.translate(-SX(BAG.x), -SY(BAG.y));
+}
+
+function sapYolu(g, i) {
+  const ust = g.sapUcu || [g.x, g.y - 0.2 * g.boy];
+  const bx = BAG.x + (i - 3.5) * 0.018, alt = [BAG.x + (i - 3.5) * 0.065, -1.95 - (i % 3) * 0.04];
+  return { ust, bag: [bx, BAG.y], alt };
+}
+
+function saplariCiz(zaman) {
+  const p = akici(ilerleme(zaman, 0, AYARLAR.sapSuresi));
+  if (p <= 0) return;
+  ctx.lineCap = 'round';
+  GULLER.forEach((g, i) => {
+    const y = sapYolu(g, i);
+    const noktalar = [];
+    for (let k = 0; k <= 20; k++) {
+      const t = k / 20;
+      noktalar.push([ara(y.alt[0], y.bag[0], t), ara(y.alt[1], y.bag[1], t)]);
+    }
+    const kx = ara(y.bag[0], y.ust[0], 0.35) * 0.6, ky = ara(y.bag[1], y.ust[1], 0.55);
+    for (let k = 1; k <= 30; k++) {
+      const t = k / 30, u = 1 - t;
+      noktalar.push([u * u * y.bag[0] + 2 * u * t * kx + t * t * y.ust[0], u * u * y.bag[1] + 2 * u * t * ky + t * t * y.ust[1]]);
+    }
+    const son = Math.max(1, Math.floor(p * (noktalar.length - 1)));
+    [[RENK.sap[0], 0.05, 0], [RENK.sap[1], 0.036, -0.004], [RENK.sap[2], 0.012, -0.011]].forEach(([renk, kalin, kay]) => {
+      ctx.strokeStyle = renk;
+      ctx.lineWidth = kalin * O();
+      ctx.beginPath();
+      for (let k = 0; k <= son; k++) ctx.lineTo(SX(noktalar[k][0] + kay), SY(noktalar[k][1]));
+      ctx.stroke();
+    });
+  });
+}
+
+function yaprakcikCiz(x, y, aci, boy, ayna, ton) {
+  ctx.save();
+  ctx.translate(SX(x), SY(y));
+  ctx.rotate(aci);
+  ctx.scale(boy * O(), boy * O() * ayna);
+  const g = ctx.createLinearGradient(0, -0.3, 0, 0.3);
+  g.addColorStop(0, renkYaz(karistir(hex(RENK.yesil[2]), hex(RENK.yesil[3]), 0.25 * ton)));
+  g.addColorStop(1, RENK.yesil[1]);
+  ctx.fillStyle = g;
+  ctx.fill(yaprakcik);
+  ctx.fillStyle = 'rgba(8,24,10,0.3)';
+  ctx.fill(yaprakcikUst);
+  ctx.save();
+  ctx.clip(yaprakcik);
+  ctx.strokeStyle = 'rgba(190,225,160,0.32)';
+  ctx.lineWidth = 0.012;
+  ctx.stroke(damar);
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(10,30,12,0.5)';
+  ctx.lineWidth = 0.01;
+  ctx.stroke(yaprakcik);
+  ctx.restore();
+}
+
+function yapraklariCiz(zaman) {
+  YAPRAKLAR.forEach(t => {
+    const p = yumusak(ilerleme(zaman, 0.8 + t.gecikme, 1.2));
+    if (p <= 0) return;
+    const sol = Math.cos(t.aci) < 0;
+    const aci = t.aci + (1 - p) * (sol ? 0.8 : -0.8);
+    const L = t.boy * p;
+    const ex = t.x + Math.cos(aci) * L, ey = t.y + Math.sin(aci) * L;
+    ctx.strokeStyle = RENK.yesil[1];
+    ctx.lineWidth = 0.018 * O();
+    ctx.beginPath(); ctx.moveTo(SX(t.x), SY(t.y)); ctx.lineTo(SX(ex), SY(ey)); ctx.stroke();
+    const mx = t.x + Math.cos(aci) * L * 0.5, my = t.y + Math.sin(aci) * L * 0.5;
+    const yan = 0.95 * p;
+    yaprakcikCiz(mx, my, -aci - yan, L * 0.6, 1, 0.3);
+    yaprakcikCiz(mx, my, -aci + yan, L * 0.58, -1, 0);
+    yaprakcikCiz(ex, ey, -aci, L * 0.76, 1, 1);
+  });
+}
+
+function cipsolariCiz(zaman) {
+  CIPSOLAR.forEach(c => {
+    const p = yumusak(ilerleme(zaman, 2.2 + c.gecikme, 1.6));
+    if (p <= 0) return;
+    const bx = BAG.x, by = BAG.y + 0.5;
+    const ux = ara(bx, c.uc.x, p), uy = ara(by, c.uc.y, p);
+    const kx = ara(bx, c.uc.x * 0.6, p), ky = ara(by, c.uc.y * 0.4 + 0.2, p);
+    ctx.strokeStyle = 'rgba(120,140,100,0.7)';
+    ctx.lineWidth = 0.007 * O();
+    ctx.beginPath(); ctx.moveTo(SX(bx), SY(by)); ctx.quadraticCurveTo(SX(kx), SY(ky), SX(ux), SY(uy)); ctx.stroke();
+    c.dallar.forEach(d => {
+      const t = d.s, u = 1 - t;
+      const ox = u * u * bx + 2 * u * t * kx + t * t * ux, oy = u * u * by + 2 * u * t * ky + t * t * uy;
+      const L = d.boy * p;
+      const ex = ox + Math.cos(d.aci) * L, ey = oy + Math.sin(d.aci) * L;
+      ctx.strokeStyle = 'rgba(120,140,100,0.6)';
+      ctx.lineWidth = 0.005 * O();
+      ctx.beginPath(); ctx.moveTo(SX(ox), SY(oy)); ctx.lineTo(SX(ex), SY(ey)); ctx.stroke();
+      const cp = ilerleme(p, 0.6, 0.4);
+      if (cp <= 0) return;
+      d.cicekler.forEach(([dx, dy, r]) => {
+        const x = SX(ex + dx), y = SY(ey + dy), rr = r * O() * cp;
+        ctx.fillStyle = 'rgba(70,60,50,0.25)';
+        ctx.beginPath(); ctx.arc(x + rr * 0.25, y + rr * 0.3, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,253,246,0.95)';
+        ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.fillStyle = 'rgba(255,253,246,0.95)';
+      ctx.beginPath(); ctx.arc(SX(ux), SY(uy), 0.016 * O() * cp, 0, Math.PI * 2); ctx.fill();
+    });
+  });
+}
+
+function kurdeleCiz(zaman) {
+  if (!AYARLAR.kurdele) return;
+  const p = yumusak(ilerleme(zaman, 0.5, 1.0));
+  if (p <= 0) return;
+  const ana = hex(palet.kurdele);
+  const acik = renkYaz(karistir(ana, [255, 255, 255], 0.35)), koyu = renkYaz(karistir(ana, [40, 30, 25], 0.35));
+  const x = SX(BAG.x), y = SY(BAG.y), o = O() * 1.35 * (0.6 + 0.4 * p);
+  ctx.save();
+  ctx.globalAlpha = p;
+  ctx.translate(x, y);
+  ctx.scale(o, o);
+  const kumas = (x0, y0, x1, y1) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, koyu); g.addColorStop(0.45, acik); g.addColorStop(1, koyu); return g; };
+  ctx.fillStyle = kumas(-0.1, 0.06, 0.1, 0.38);
+  ctx.beginPath();
+  ctx.moveTo(-0.03, 0.02); ctx.quadraticCurveTo(-0.1, 0.2, -0.17, 0.48); ctx.lineTo(-0.12, 0.44); ctx.lineTo(-0.1, 0.5);
+  ctx.quadraticCurveTo(-0.04, 0.24, 0.01, 0.04); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0.02, 0.02); ctx.quadraticCurveTo(0.08, 0.22, 0.17, 0.44); ctx.lineTo(0.12, 0.43); ctx.lineTo(0.11, 0.49);
+  ctx.quadraticCurveTo(0.04, 0.26, -0.01, 0.05); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = kumas(0, -0.06, 0, 0.06);
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-0.13, -0.05, 0.26, 0.1, 0.02) : ctx.rect(-0.13, -0.05, 0.26, 0.1); ctx.fill();
+  [-1, 1].forEach(s => {
+    ctx.fillStyle = kumas(0, -0.12, s * 0.2, 0.1);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(s * 0.08, -0.16, s * 0.26, -0.15, s * 0.24, -0.02);
+    ctx.bezierCurveTo(s * 0.23, 0.07, s * 0.1, 0.06, 0, 0);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(40,25,15,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(s * 0.06, -0.06, s * 0.14, -0.07, s * 0.16, -0.03);
+    ctx.bezierCurveTo(s * 0.12, 0.0, s * 0.05, 0.01, 0, 0);
+    ctx.fill();
+  });
+  ctx.fillStyle = kumas(-0.04, -0.04, 0.04, 0.04);
+  ctx.beginPath(); ctx.ellipse(0, 0, 0.045, 0.04, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function isiklariCiz(zaman, dt) {
+  const gor = ilerleme(zaman, 3.5, 1.6);
+  if (gor <= 0) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (const p of isiklar) {
+    p.yas += dt;
+    if (p.yas >= p.omur) isikDogur(p, false);
+    p.y += p.hiz * dt; p.x += Math.sin(zaman + p.faz) * p.kayma * dt;
+    const o = p.yas / p.omur;
+    ctx.globalAlpha = gor * Math.sin(o * Math.PI) * (0.5 + 0.5 * Math.sin(zaman * 2.4 + p.faz)) * 0.8;
+    const s = p.boy * O() * 0.04;
+    ctx.drawImage(toz, SX(p.x) - s, SY(p.y) - s, s * 2, s * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+let sonAcilma = 0;
+function ciz(zaman, dt) {
+  const sallan = yumusak(ilerleme(zaman, 5.2, 2.5)) * AYARLAR.salinim;
+  salinimAci = Math.sin(zaman * 0.8) * 0.022 * sallan;
+  GULLER.forEach(g => { g.sallan = sallan; gulKur(g, zaman); });
+  zeminCiz();
+  isiklariCiz(zaman, dt);
+  salinimUygula();
+  cipsolariCiz(zaman);
+  saplariCiz(zaman);
+  yapraklariCiz(zaman);
+  kurdeleCiz(zaman);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  gulleriCiz(zaman);
+  if (yazi && zaman > sonAcilma - 0.6) yaziKutusu.classList.add('gorunur');
+}
+sonAcilma = Math.max(...GULLER.map(g => AYARLAR.sapSuresi * 0.75 + g.gecikme + AYARLAR.tomurcukSuresi * 0.7 + AYARLAR.acilmaSuresi * 0.8));
+
+let baslangic = 0, sonZaman = 0, sanalZaman = 0;
+function yenidenBaslat() {
+  baslangic = performance.now(); sanalZaman = 0;
+  isiklar.forEach(p => isikDogur(p, true));
+  yaziKutusu.classList.remove('gorunur');
+}
+function dongu(simdi) {
+  const dt = Math.min((simdi - sonZaman) / 1000, 0.05);
+  sonZaman = simdi;
+  ciz((simdi - baslangic) / 1000, dt);
+  requestAnimationFrame(dongu);
+}
+
+window.addEventListener('click', yenidenBaslat);
+window.addEventListener('dblclick', tamEkran);
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); yenidenBaslat(); }
+  if (e.key === 'f' || e.key === 'F') tamEkran();
+});
+function tamEkran() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  else document.exitFullscreen();
+}
+
+let imlecSayac;
+window.addEventListener('mousemove', () => {
+  document.body.classList.remove('imlec-gizli');
+  clearTimeout(imlecSayac);
+  imlecSayac = setTimeout(() => document.body.classList.add('imlec-gizli'), 1500);
+});
+
+boyutla();
+yenidenBaslat();
+if (kayitModu) {
+  window.kareIlerle = s => { sanalZaman += s; ciz(sanalZaman, s); };
+} else {
+  sonZaman = performance.now();
+  requestAnimationFrame(dongu);
+}
+</script>
+</body>
+</html>
