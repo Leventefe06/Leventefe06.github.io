@@ -30,12 +30,12 @@
 const AYARLAR = {
   gulSayisi: 24,
   canakYaprak: 5,
-  parilti: 40,
+  parilti: 120,
   cipso: 24,
   yesilYaprak: 22,
-  sapSuresi: 1.4,
-  tomurcukSuresi: 1.0,
-  acilmaSuresi: 3.6,
+  sapSuresi: 0.9,
+  tomurcukSuresi: 0.7,
+  acilmaSuresi: 2.4,
   salinim: 1,
   kurdele: true,
   golgeGucu: 0.4
@@ -115,7 +115,7 @@ const GULLER = [];
       egim: Math.min(0.85, Math.asin(yon[2] / yl)) + (rastgele() - 0.5) * 0.16,
       yatik: -Math.atan2(yon[0], yon[1]) + (rastgele() - 0.5) * 0.15,
       yaw: rastgele() * Math.PI * 2,
-      gecikme: kenar * 1.0 + rastgele() * 0.6,
+      gecikme: kenar * 0.6 + rastgele() * 0.35,
       yaprak: (yuksek ? 22 : 16) + Math.floor(rastgele() * 7),
       kivrim: 0.8 + rastgele() * 0.45,
       ton: TONLAR[Math.floor(rastgele() * TONLAR.length)],
@@ -675,7 +675,7 @@ function yaprakcikCiz(x, y, aci, boy, ayna, ton) {
 
 function yapraklariCiz(zaman) {
   YAPRAKLAR.forEach(t => {
-    const p = yumusak(ilerleme(zaman, 0.8 + t.gecikme, 1.2));
+    const p = yumusak(ilerleme(zaman, 0.5 + t.gecikme * 0.6, 0.8));
     if (p <= 0) return;
     const sol = Math.cos(t.aci) < 0;
     const aci = t.aci + (1 - p) * (sol ? 0.8 : -0.8);
@@ -694,7 +694,7 @@ function yapraklariCiz(zaman) {
 
 function cipsolariCiz(zaman) {
   CIPSOLAR.forEach(c => {
-    const p = yumusak(ilerleme(zaman, 2.2 + c.gecikme, 1.6));
+    const p = yumusak(ilerleme(zaman, 1.4 + c.gecikme * 0.6, 1.0));
     if (p <= 0) return;
     const bx = BAG.x, by = BAG.y + 0.5;
     const ux = ara(bx, c.uc.x, p), uy = ara(by, c.uc.y, p);
@@ -766,7 +766,7 @@ function kurdeleCiz(zaman) {
 }
 
 function isiklariCiz(zaman, dt) {
-  const gor = ilerleme(zaman, 3.5, 1.6);
+  const gor = ilerleme(zaman, 0.6, 1.2);
   if (gor <= 0) return;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   for (const p of isiklar) {
@@ -774,8 +774,8 @@ function isiklariCiz(zaman, dt) {
     if (p.yas >= p.omur) isikDogur(p, false);
     p.y += p.hiz * dt; p.x += Math.sin(zaman + p.faz) * p.kayma * dt;
     const o = p.yas / p.omur;
-    ctx.globalAlpha = gor * Math.sin(o * Math.PI) * (0.5 + 0.5 * Math.sin(zaman * 2.4 + p.faz)) * 0.8;
-    const s = p.boy * O() * 0.04;
+    ctx.globalAlpha = gor * Math.sin(o * Math.PI) * (0.55 + 0.45 * Math.sin(zaman * 2.4 + p.faz));
+    const s = p.boy * O() * 0.048;
     ctx.drawImage(toz, SX(p.x) - s, SY(p.y) - s, s * 2, s * 2);
   }
   ctx.globalAlpha = 1;
