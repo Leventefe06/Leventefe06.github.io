@@ -303,7 +303,7 @@ h2 {
   order: -1;
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.58s cubic-bezier(.22, .8, .28, 1);
+  transition: grid-template-rows 1.15s cubic-bezier(.42, 0, .58, 1);
 }
 .zarf.acik .kagit-yer { grid-template-rows: 1fr; }
 .kagit {
@@ -316,13 +316,16 @@ h2 {
   font-size: 0.8rem;
   line-height: 1.38;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  transition: margin-bottom 0.58s cubic-bezier(.22, .8, .28, 1);
+  transition: margin-bottom 1.15s cubic-bezier(.42, 0, .58, 1);
 }
 .kagit span {
   display: block;
   padding: 0.75rem 0.62rem 2.75rem;
+  transform: translateY(108%);
+  transition: transform 1.15s cubic-bezier(.42, 0, .58, 1);
 }
 .zarf.acik .kagit { margin-bottom: -1.9rem; }
+.zarf.acik .kagit span { transform: translateY(0); }
 .zarf-svg {
   position: relative;
   z-index: 2;
@@ -570,7 +573,7 @@ html.canli .ad { transition-duration: 1.05s; }
 @media (prefers-reduced-motion: reduce) {
   .giris h1, .cizgi, .kutlama, .ipucu, .alev, .serit-yol.akar { animation: none; }
   .film video { display: none; }
-  [data-belir], .ad, .kagit, .kagit-yer { transition: none; }
+  [data-belir], .ad, .kagit, .kagit-yer, .kagit span { transition: none; }
 }
 </style>
 <script>
