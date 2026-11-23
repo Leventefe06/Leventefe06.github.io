@@ -53,27 +53,29 @@ button, a { -webkit-tap-highlight-color: transparent; }
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 0 0 4.6rem;
+  padding: 0;
   background: #100e0c;
   overflow: hidden;
 }
 .giris::before {
   content: "";
   position: absolute;
-  inset: -14%;
-  background: #100e0c url("zemin.jpg") center 42% / cover no-repeat;
-  filter: blur(22px) brightness(0.62) saturate(0.85);
-  transform: scale(1.06);
+  inset: -10%;
+  background: #100e0c url("zemin.jpg") center 38% / cover no-repeat;
+  filter: blur(14px) brightness(0.8) saturate(0.9);
+  transform: scale(1.08);
 }
 .film {
-  position: relative;
+  position: absolute;
   z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
-  margin-top: 4.5vh;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 48%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 48%, transparent 100%);
 }
 .film video {
   width: 100%;
@@ -88,10 +90,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   left: 0;
   right: 0;
   bottom: 0;
-  height: 48%;
+  height: 64%;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgba(16, 14, 12, 0) 0%, rgba(16, 14, 12, 0.5) 42%, rgba(16, 14, 12, 0.82) 100%);
+  background: linear-gradient(to bottom, rgba(16, 14, 12, 0) 0%, rgba(16, 14, 12, 0.28) 36%, rgba(16, 14, 12, 0.58) 100%);
 }
 .giris-ic {
   position: relative;
@@ -99,10 +101,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: flex-end;
   width: min(100%, 40rem);
-  margin-top: 0.6rem;
-  padding: 0 1.4rem;
+  margin-top: 0;
+  padding: 0 1.4rem 4.4rem;
 }
 .soz-ust { display: flex; flex-direction: column; }
 .imza { margin-top: 0.15rem; }
@@ -137,6 +139,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   font-size: clamp(1.45rem, 5.8vw, 1.85rem);
   line-height: 1.15;
 }
+.giris .alt { padding-right: 5.2rem; }
 .alt {
   margin-top: 1.35rem;
   color: var(--soluk);
@@ -430,6 +433,7 @@ html.canli .ad { transition-duration: 1.05s; }
     padding: 0;
   }
   .giris h1 { font-size: clamp(3.1rem, 4.6vw, 4.6rem); }
+  .giris .alt { padding-right: 0; }
   .ipucu { left: 8vw; right: auto; text-align: left; }
   .ipucu::after { margin-left: 0; }
   .bolum { padding: 5rem 2rem; }
