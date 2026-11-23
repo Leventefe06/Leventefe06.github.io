@@ -269,6 +269,80 @@ h2 {
   font-size: clamp(1.32rem, 5.4vw, 1.62rem);
   line-height: 1.32;
 }
+.mektuplar {
+  background: #090908;
+}
+.mektuplar h2 { max-width: 9em; }
+.zarflar {
+  max-width: 40rem;
+  margin: 2.5rem auto 0;
+  display: grid;
+  grid-template-columns: 0.78fr 1.14fr;
+  gap: 2.15rem 1.05rem;
+  align-items: end;
+}
+.zarf {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1c1610;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: margin-top 0.62s cubic-bezier(.22, .8, .28, 1);
+}
+.zarf:nth-child(1) { width: 84%; }
+.zarf:nth-child(2) { justify-self: end; }
+.zarf:nth-child(4) { width: 94%; justify-self: end; }
+.zarf:nth-child(5) { width: 96%; }
+.zarf.acik { margin-top: 9.4rem; }
+.zarf:focus-visible {
+  outline: 1px solid var(--vurgu);
+  outline-offset: 5px;
+}
+.zarf-svg {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.zarf-pencere {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: -11rem;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.kagit {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: calc(100% - 11.7rem);
+  height: auto;
+  padding: 0.85rem 0.75rem 1.35rem;
+  background: #f4efe4;
+  color: #1c1610;
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  line-height: 1.32;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  transform: translateY(170%);
+  transition: transform 0.62s cubic-bezier(.22, .8, .28, 1);
+}
+.zarf.acik .kagit { transform: translateY(0); }
+.zarf:nth-child(odd) .kagit {
+  left: 5%;
+  right: auto;
+  width: calc(100% + 1.5rem);
+}
 .anma {
   background:
     radial-gradient(ellipse 22rem 14rem at 50% 3.2rem, rgba(198, 140, 70, 0.1), transparent 70%),
@@ -494,6 +568,8 @@ html.canli .ad { transition-duration: 1.05s; }
   .ipucu::after { margin-left: 0; }
   .bolum { padding: 5rem 2rem; }
   .kartlar { grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+  .zarflar { max-width: 48rem; gap: 2.8rem 1.8rem; }
+  .kagit { font-size: 1.12rem; }
   .anma { padding: 6rem 2rem 2.5rem; }
   .dugmeler { flex-direction: row; width: auto; justify-content: center; }
   .dugme { min-width: 14.5rem; }
@@ -507,7 +583,7 @@ html.canli .ad { transition-duration: 1.05s; }
 @media (prefers-reduced-motion: reduce) {
   .giris h1, .cizgi, .kutlama, .ipucu, .alev, .serit-yol.akar { animation: none; }
   .film video { display: none; }
-  [data-belir], .ad { transition: none; }
+  [data-belir], .ad, .kagit, .zarf { transition: none; }
 }
 </style>
 <script>
@@ -569,6 +645,69 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       <li data-belir>“Sen yaparsın” dediğin gün</li>
       <li data-belir>Elini omzuma koyduğun gün</li>
     </ul>
+  </section>
+
+  <section class="bolum mektuplar">
+    <div class="kolon" data-belir>
+      <p class="ustbilgi">Zarfın üzerine bas</p>
+      <h2>İçinden bir satır çıksın</h2>
+    </div>
+    <div class="zarflar">
+      <button class="zarf" type="button" aria-expanded="false">
+        <span class="zarf-pencere"><span class="kagit">Adımı ilk sen yazdın. Hâlâ o yazıyla yazıyorum.</span></span>
+        <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true">
+          <rect width="240" height="132" fill="#fff"/>
+          <rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/>
+          <polyline points="2,2 120,66 238,2" fill="none" stroke="#161616" stroke-width="2"/>
+          <path d="M120 90c0 0-8-4.7-8-8.8a4.1 4.1 0 0 1 8-1.1 4.1 4.1 0 0 1 8 1.1c0 4.1-8 8.8-8 8.8z" fill="none" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="zarf" type="button" aria-expanded="false">
+        <span class="zarf-pencere"><span class="kagit">Korktuğum soruda bekledin. Elim sonra kalktı.</span></span>
+        <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true">
+          <rect width="240" height="132" fill="#fff"/>
+          <rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/>
+          <polyline points="2,2 120,66 238,2" fill="none" stroke="#161616" stroke-width="2"/>
+          <polygon points="120,74 122.2,82.4 130.6,84 122.2,85.6 120,94 117.8,85.6 109.4,84 117.8,82.4" fill="none" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="zarf" type="button" aria-expanded="false">
+        <span class="zarf-pencere"><span class="kagit">Yanlışımı hemen silmedin. Doğruyu ben buldum.</span></span>
+        <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true">
+          <rect width="240" height="132" fill="#fff"/>
+          <rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/>
+          <polyline points="2,2 120,66 238,2" fill="none" stroke="#161616" stroke-width="2"/>
+          <polygon points="120,76 122.4,81.2 128,80.6 124.8,85.2 128,89.8 122.4,89.2 120,94.4 117.6,89.2 112,89.8 115.2,85.2 112,80.6 117.6,81.2" fill="none" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="zarf" type="button" aria-expanded="false">
+        <span class="zarf-pencere"><span class="kagit">Sen yaparsın. O cümle hâlâ kulağımda.</span></span>
+        <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true">
+          <rect width="240" height="132" fill="#fff"/>
+          <rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/>
+          <polyline points="2,2 120,66 238,2" fill="none" stroke="#161616" stroke-width="2"/>
+          <polygon points="120,75.5 122.6,82.2 129.6,82.6 124,87.2 125.8,94 120,90.2 114.2,94 116,87.2 110.4,82.6 117.4,82.2" fill="none" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="zarf" type="button" aria-expanded="false">
+        <span class="zarf-pencere"><span class="kagit">Öğretmenim dediğim ilk insansın.</span></span>
+        <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true">
+          <rect width="240" height="132" fill="#fff"/>
+          <rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/>
+          <polyline points="2,2 120,66 238,2" fill="none" stroke="#161616" stroke-width="2"/>
+          <polygon points="120,80 121.4,86.2 127.6,87.6 121.4,89 120,95.2 118.6,89 112.4,87.6 118.6,86.2" fill="none" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="zarf" type="button" aria-expanded="false">
+        <span class="zarf-pencere"><span class="kagit">Bir harfi senden öğrendim. Cümle de senden.</span></span>
+        <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true">
+          <rect width="240" height="132" fill="#fff"/>
+          <rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/>
+          <polyline points="2,2 120,66 238,2" fill="none" stroke="#161616" stroke-width="2"/>
+          <polygon points="120,73 123.2,81.6 132.2,82 125.2,87.6 127.6,96.4 120,91.4 112.4,96.4 114.8,87.6 107.8,82 116.8,81.6" fill="none" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
   </section>
 
   <section class="anma" id="anma">
@@ -706,6 +845,21 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 
     adlar.forEach(function (el) { adGoz.observe(el); });
   }
+
+  var zarflar = document.querySelectorAll(".zarf");
+  Array.prototype.forEach.call(zarflar, function (z) {
+    z.addEventListener("click", function () {
+      var acilacak = !z.classList.contains("acik");
+      Array.prototype.forEach.call(zarflar, function (diger) {
+        diger.classList.remove("acik");
+        diger.setAttribute("aria-expanded", "false");
+      });
+      if (acilacak) {
+        z.classList.add("acik");
+        z.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
 
   var dugme = document.getElementById("gonder");
   var duyuru = document.getElementById("duyuru");
