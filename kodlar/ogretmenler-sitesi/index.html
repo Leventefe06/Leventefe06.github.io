@@ -733,6 +733,7 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 <p class="duyuru" id="duyuru" role="status" aria-live="polite"></p>
 <script>
 (function () {
+  try {
   var azalt = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var film = document.querySelector(".film video");
   if (film && azalt) {
@@ -742,7 +743,7 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   var yol = document.getElementById("yol");
   var grup = document.getElementById("grup");
   if (!azalt && yol && grup) {
-    var copya = grup.cloneNode(true);
+    var kopya = grup.cloneNode(true);
     kopya.setAttribute("aria-hidden", "true");
     yol.appendChild(kopya);
     yol.classList.add("akar");
@@ -755,9 +756,9 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         k.target.classList.add("gorundu");
         goz.unobserve(k.target);
       });
-    }, { threshold: 0.22, rootMargin: "0px 0px -8% 0px" });
+    }, { threshold: 0.01, rootMargin: "0px 0px 24% 0px" });
 
-    Array.prototype.forEach.call(document.querySelectorAll("[data-belir="), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-belir]"), function (el) {
       goz.observe(el);
     });
 
@@ -857,6 +858,9 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     }
     kopyala(url);
   });
+  } catch (e) {
+    document.documentElement.classList.remove("canli");
+  }
 })();
 </script>
 </body>
