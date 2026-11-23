@@ -216,7 +216,7 @@ h2 {
   background:
     radial-gradient(ellipse 22rem 14rem at 50% 3.2rem, rgba(198, 140, 70, 0.1), transparent 70%),
     var(--gece);
-  padding: 5.5rem 1.35rem 5rem;
+  padding: 5.5rem 1.35rem 2.25rem;
 }
 .mum {
   position: relative;
@@ -288,10 +288,10 @@ h2 {
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   text-align: center;
-  padding: 4.5rem 1.4rem calc(4.5rem + env(safe-area-inset-bottom));
+  padding: 14vh 1.4rem calc(4.5rem + env(safe-area-inset-bottom));
 }
 .kapanis h2 {
   font-size: clamp(2.4rem, 9.6vw, 5.2rem);
@@ -349,12 +349,12 @@ html.canli .ad {
   opacity: 0;
   transform: translateY(14px);
 }
-html.canli [data-belir=.gorundu,
+html.canli [data-belir].gorundu,
 html.canli .ad.gorundu {
   opacity: 1;
   transform: none;
 }
-html.canli .ad { transition-duration: 1.45s; }
+html.canli .ad { transition-duration: 1.05s; }
 @media (hover: hover) {
   .kartlar li:hover { border-color: rgba(198, 163, 106, 0.55); }
   .dugme:hover { border-color: var(--vurgu); color: var(--murekkep); }
@@ -365,7 +365,7 @@ html.canli .ad { transition-duration: 1.45s; }
   .ipucu { left: 11vw; }
   .bolum { padding: 7rem 2rem; }
   .kartlar { grid-template-columns: 1fr 1fr; gap: 0.85rem; }
-  .anma { padding: 7.5rem 2rem 6rem; }
+  .anma { padding: 7.5rem 2rem 2.5rem; }
   .dugmeler { flex-direction: row; width: auto; justify-content: center; }
   .dugme { min-width: 14.5rem; }
 }
@@ -418,7 +418,7 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       <p class="ustbilgi">24 Kasım 1928</p>
       <h2>Neden 24 Kasım</h2>
       <div class="anlat">
-        <p>24 Kasım 1928’de Millet Mertepleri Talimatnamesi Resmî Gazete’de yayımlandı. Mustafa Kemal Atatürk, yeni harflerle okuma yazmayı bütün ülkeye yayacak bu seferberliğin başöğretmenliğini kabul etti.</p>
+        <p>24 Kasım 1928’de Millet Mektepleri Talimatnamesi Resmî Gazete’de yayımlandı. Mustafa Kemal Atatürk, yeni harflerle okuma yazmayı bütün ülkeye yayacak bu seferberliğin başöğretmenliğini kabul etti.</p>
         <p>1981’de, doğumunun yüzüncü yılında, bu gün Öğretmenler Günü ilan edildi.</p>
       </div>
     </div>
@@ -521,7 +521,7 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   var yol = document.getElementById("yol");
   var grup = document.getElementById("grup");
   if (!azalt && yol && grup) {
-    var kopya = grup.cloneNode(true);
+    var copya = grup.cloneNode(true);
     kopya.setAttribute("aria-hidden", "true");
     yol.appendChild(kopya);
     yol.classList.add("akar");
@@ -536,7 +536,7 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       });
     }, { threshold: 0.22, rootMargin: "0px 0px -8% 0px" });
 
-    Array.prototype.forEach.call(document.querySelectorAll("[data-belir]"), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-belir="), function (el) {
       goz.observe(el);
     });
 
@@ -550,9 +550,9 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         adGoz.unobserve(k.target);
         window.setTimeout(function () {
           k.target.classList.add("gorundu");
-        }, Math.min(i, 7) * 240);
+        }, Math.min(i, 4) * 160);
       });
-    }, { threshold: 0.22, rootMargin: "0px 0px 0px 0px" });
+    }, { threshold: 0.08, rootMargin: "0px 0px 18% 0px" });
 
     adlar.forEach(function (el) { adGoz.observe(el); });
   }
