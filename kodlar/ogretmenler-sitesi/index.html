@@ -52,41 +52,60 @@ button, a { -webkit-tap-highlight-color: transparent; }
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 6.5vh 1.4rem 5.2rem;
-  background-color: #13110e;
-  background-image:
-    radial-gradient(ellipse at 28% 18%, rgba(243, 234, 220, 0.045), transparent 34%),
-    radial-gradient(ellipse at 76% 74%, rgba(243, 234, 220, 0.03), transparent 30%),
-    radial-gradient(ellipse at 50% 42%, rgba(243, 234, 220, 0.05), transparent 56%);
+  align-items: stretch;
+  padding: 0 0 4.6rem;
+  background: #100e0c;
   overflow: hidden;
 }
 .giris::before {
   content: "";
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.34;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.94 0 0 0 0 0.84 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  inset: -14%;
+  background: #100e0c url("zemin.jpg") center 42% / cover no-repeat;
+  filter: blur(22px) brightness(0.62) saturate(0.85);
+  transform: scale(1.06);
+}
+.film {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin-top: 4.5vh;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+}
+.film video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  display: block;
 }
 .giris::after {
   content: "";
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48%;
+  z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.42) 100%);
+  background: linear-gradient(to bottom, rgba(16, 14, 12, 0) 0%, rgba(16, 14, 12, 0.5) 42%, rgba(16, 14, 12, 0.82) 100%);
 }
 .giris-ic {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: min(100%, 40rem);
+  margin-top: 0.6rem;
+  padding: 0 1.4rem;
 }
 .soz-ust { display: flex; flex-direction: column; }
+.imza { margin-top: 0.15rem; }
 .giris h1 {
   font-family: var(--serif);
   font-weight: 400;
@@ -94,6 +113,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   line-height: 1.02;
   letter-spacing: -0.03em;
   max-width: 12em;
+  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
   animation: belirme 1.5s cubic-bezier(.22, .61, .36, 1) both;
 }
 .cizgi {
@@ -102,21 +122,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
   margin: 1.2rem 0 1.15rem;
   background: var(--vurgu);
   animation: belirme 1.5s cubic-bezier(.22, .61, .36, 1) 0.12s both;
-}
-.portre {
-  display: flex;
-  align-items: center;
-  gap: 0.95rem;
-  margin: 0;
-  animation: belirme 1.5s cubic-bezier(.22, .61, .36, 1) 0.2s both;
-}
-.portre img {
-  width: 11rem;
-  height: 13.75rem;
-  object-fit: cover;
-  object-position: center 12%;
-  border: 1px solid rgba(198, 163, 106, 0.5);
-  filter: grayscale(1) contrast(1.04);
 }
 .unvan {
   display: block;
@@ -142,7 +147,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .ipucu {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   right: 1.4rem;
   bottom: calc(1.35rem + env(safe-area-inset-bottom));
   text-align: right;
@@ -401,26 +406,30 @@ html.canli .ad { transition-duration: 1.05s; }
   .dugme:hover { border-color: var(--vurgu); color: var(--murekkep); }
 }
 @media (min-width: 800px) {
-  .giris { justify-content: center; align-items: center; padding: 8vh 8vw 4rem; }
+  .giris { justify-content: flex-end; padding: 0 0 4rem; }
+  .giris::before { filter: blur(18px) brightness(0.34) saturate(0.7); }
+  .giris::after {
+    height: 100%;
+    background: linear-gradient(90deg, rgba(10, 9, 8, 0.82) 0%, rgba(10, 9, 8, 0.46) 46%, rgba(10, 9, 8, 0.18) 100%);
+  }
+  .film {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    height: 100%;
+    aspect-ratio: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .film video { object-position: 62% center; }
   .giris-ic {
-    display: grid;
     flex: none;
-    justify-content: initial;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    width: min(72rem, 100%);
-    column-gap: 4rem;
+    justify-content: flex-end;
+    width: min(40rem, 46vw);
+    margin: 0 0 8vh 8vw;
+    padding: 0;
   }
-  .soz-ust, .alt { grid-column: 1; }
-  .giris h1 { font-size: clamp(3.4rem, 5.4vw, 5.2rem); }
-  .portre {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.85rem;
-  }
-  .portre img { width: 13.5rem; height: 16.8rem; }
+  .giris h1 { font-size: clamp(3.1rem, 4.6vw, 4.6rem); }
   .ipucu { left: 8vw; right: auto; text-align: left; }
   .ipucu::after { margin-left: 0; }
   .bolum { padding: 5rem 2rem; }
@@ -430,7 +439,8 @@ html.canli .ad { transition-duration: 1.05s; }
   .dugme { min-width: 14.5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .giris h1, .cizgi, .portre, .alt, .ipucu, .alev, .serit-yol.akar { animation: none; }
+  .giris h1, .cizgi, .imza, .alt, .ipucu, .alev, .serit-yol.akar { animation: none; }
+  .film video { display: none; }
   [data-belir], .ad { transition: none; }
 }
 </style>
@@ -443,18 +453,21 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 <body>
 <main>
   <section class="giris">
+    <div class="film">
+      <video autoplay muted loop playsinline poster="zemin.jpg" tabindex="-1">
+        <source src="zemin.webm" type="video/webm">
+        <source src="zemin.mp4" type="video/mp4">
+      </video>
+    </div>
     <div class="giris-ic">
       <div class="soz-ust">
         <h1>Bana bir harf<br>öğretenin kırk yıl<br>kölesi olurum.</h1>
         <div class="cizgi"></div>
       </div>
-      <figure class="portre">
-        <img src="portre.jpg" alt="Başöğretmen Mustafa Kemal Atatürk" width="720" height="922">
-        <figcaption>
-          <span class="unvan">Başöğretmen</span>
-          <span class="isim">Mustafa Kemal Atatürk</span>
-        </figcaption>
-      </figure>
+      <p class="imza">
+        <span class="unvan">Başöğretmen</span>
+        <span class="isim">Mustafa Kemal Atatürk</span>
+      </p>
       <p class="alt">24 Kasım Öğretmenler Günü</p>
     </div>
     <p class="ipucu">kaydır</p>
@@ -588,6 +601,11 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 <script>
 (function () {
   var azalt = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var film = document.querySelector(".film video");
+  if (film && azalt) {
+    film.removeAttribute("autoplay");
+    film.pause();
+  }
   var yol = document.getElementById("yol");
   var grup = document.getElementById("grup");
   if (!azalt && yol && grup) {
