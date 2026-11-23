@@ -574,10 +574,28 @@ html.canli .ad { transition-duration: 1.05s; }
   .film video { display: none; }
   [data-belir], .ad, .kagit, .kagit-yer, .kagit span { transition: none; }
 }
+html.kayit {
+  scroll-behavior: auto;
+  scrollbar-width: none;
+}
+html.kayit body {
+  scrollbar-width: none;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+html.kayit::-webkit-scrollbar,
+html.kayit body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
 </style>
 <script>
 if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   document.documentElement.classList.add("canli");
+}
+if (new URLSearchParams(location.search).has("kayit")) {
+  document.documentElement.classList.add("kayit");
 }
 </script>
 </head>
@@ -860,6 +878,160 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   } catch (e) {
     document.documentElement.classList.remove("canli");
   }
+})();
+(function () {
+  var sorgu = new URLSearchParams(location.search);
+  if (!sorgu.has("kayit")) return;
+  var kok = document.documentElement;
+  kok.classList.add("kayit");
+  kok.style.scrollBehavior = "auto";
+  var hiz = Number(sorgu.get("hiz"));
+  if (!isFinite(hiz) || hiz <= 0) hiz = 60;
+  var durakAcik = sorgu.get("durak") !== "0";
+  var ramp = 0.85;
+  var y = window.scrollY || 0;
+  var v = 0;
+  var faz = "bekle";
+  var fazSure = 0;
+  var kullaniciDurdu = false;
+  var duraklanan = [];
+  var once = 0;
+  var yavas = null;
+
+  function yumusak(u) {
+    u = Math.max(0, Math.min(1, u));
+    return u * u * (3 - 2 * u);
+  }
+
+  function taban() {
+    return Math.max(0, kok.scrollHeight - window.innerHeight);
+  }
+
+  function anmaIcinde(pos) {
+    var anma = document.querySelector(".anma");
+    if (!anma) return false;
+    var orta = pos + window.innerHeight / 2;
+    return orta >= anma.offsetTop && orta < anma.offsetTop + anma.offsetHeight;
+  }
+
+  function sonrakiDurak(pos) {
+    if (!durakAcik) return null;
+    var orta = window.innerHeight / 2;
+    var son = taban();
+    var secs = document.querySelectorAll("main section");
+    var en = null;
+    for (var i = 0; i < secs.length; i++) {
+      var el = secs[i];
+      if (duraklanan.indexOf(el) !== -1) continue;
+      var hedef = el.offsetTop - orta;
+      if (hedef <= pos + 0.5) continue;
+      if (hedef >= son - 1) continue;
+      if (!en || hedef < en.hedef) en = { el: el, hedef: hedef };
+    }
+    return en;
+  }
+
+  function duraklat() {
+    if (faz === "bitti") return;
+    kullaniciDurdu = !kullaniciDurdu;
+    if (!kullaniciDurdu && (faz === "git" || faz === "hizlan" || faz === "yavasla")) {
+      faz = "hizlan";
+      fazSure = 0;
+      v = 0;
+      yavas = null;
+    }
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code !== "Space" && e.key !== " ") return;
+    e.preventDefault();
+    duraklat();
+  }, true);
+
+  document.addEventListener("touchstart", function (e) {
+    e.preventDefault();
+    duraklat();
+  }, { passive: false, capture: true });
+
+  document.addEventListener("touchmove", function (e) {
+    e.preventDefault();
+  }, { passive: false, capture: true });
+
+  function kare(simdi) {
+    if (!once) once = simdi;
+    var dt = Math.min(0.05, (simdi - once) / 1000);
+    once = simdi;
+    if (faz !== "bitti" && !kullaniciDurdu) {
+      var son = taban();
+      if (faz === "bekle" || faz === "durak") {
+        fazSure += dt;
+        var bekle = faz === "bekle" ? 1.5 : 1.2;
+        if (fazSure >= bekle) {
+          faz = "hizlan";
+          fazSure = 0;
+          v = 0;
+        }
+      } else {
+        var durak = sonrakiDurak(y);
+        var hedef = durak ? durak.hedef : son;
+        if (hedef > son) hedef = son;
+        var kalan = hedef - y;
+        var temel = anmaIcinde(y) ? hiz * 0.5 : hiz;
+        var yavasMesafe = Math.max(12, temel * ramp * 0.5);
+        function varis(nokta, el) {
+          y = nokta;
+          v = 0;
+          yavas = null;
+          if (!el || y >= son - 0.5) {
+            y = son;
+            faz = "bitti";
+          } else {
+            if (duraklanan.indexOf(el) === -1) duraklanan.push(el);
+            faz = "durak";
+            fazSure = 0;
+          }
+        }
+        if (faz !== "yavasla" && kalan <= yavasMesafe) {
+          faz = "yavasla";
+          yavas = {
+            bas: y,
+            hedef: hedef,
+            sure: Math.max(0.18, (2 * Math.max(kalan, 0.01)) / temel),
+            gecen: 0,
+            el: durak ? durak.el : null
+          };
+        }
+        if (faz === "yavasla" && yavas) {
+          yavas.gecen += dt;
+          var u = Math.min(1, yavas.gecen / yavas.sure);
+          var uu = u * u * u;
+          var p = 2 * (u - (uu - 0.5 * uu * u));
+          y = yavas.bas + (yavas.hedef - yavas.bas) * p;
+          if (u >= 1 || y >= yavas.hedef - 0.4) varis(yavas.hedef, yavas.el);
+        } else if (faz === "hizlan") {
+          fazSure += dt;
+          var u2 = fazSure / ramp;
+          v = temel * yumusak(Math.min(1, u2));
+          if (u2 >= 1) faz = "git";
+          if (v * dt >= kalan) varis(hedef, durak ? durak.el : null);
+          else y += v * dt;
+        } else {
+          var limit = (hiz * dt) / ramp;
+          var fark = temel - v;
+          if (Math.abs(fark) <= limit) v = temel;
+          else v += (fark < 0 ? -1 : 1) * limit;
+          faz = "git";
+          if (v * dt >= kalan) varis(hedef, durak ? durak.el : null);
+          else y += v * dt;
+        }
+        if (y > son) y = son;
+        window.scrollTo(0, y);
+      }
+    }
+    if (faz !== "bitti") requestAnimationFrame(kare);
+  }
+
+  requestAnimationFrame(kare);
 })();
 </script>
 </body>
