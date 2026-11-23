@@ -279,11 +279,12 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.15rem 0.85rem;
-  align-items: start;
+  align-items: end;
 }
 .zarf {
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -293,65 +294,42 @@ h2 {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  container-type: inline-size;
 }
 .zarf:focus-visible {
   outline: 1px solid var(--vurgu);
   outline-offset: 4px;
 }
+.kagit-yer {
+  order: -1;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.58s cubic-bezier(.22, .8, .28, 1);
+}
+.zarf.acik .kagit-yer { grid-template-rows: 1fr; }
+.kagit {
+  min-height: 0;
+  overflow: hidden;
+  margin: 0 6% 0;
+  background: #f4efe4;
+  color: #1c1610;
+  font-family: var(--serif);
+  font-size: 0.8rem;
+  line-height: 1.38;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transition: margin-bottom 0.58s cubic-bezier(.22, .8, .28, 1);
+}
+.kagit span {
+  display: block;
+  padding: 0.75rem 0.62rem 2.75rem;
+}
+.zarf.acik .kagit { margin-bottom: -1.9rem; }
 .zarf-svg {
+  position: relative;
+  z-index: 2;
   display: block;
   width: 100%;
   height: auto;
 }
-.kagit {
-  display: none;
-  position: relative;
-  width: 100%;
-  border: 1.5px solid #161616;
-  background: #fff;
-  padding: 0.7rem 0.65rem calc(100cqw * 0.3);
-  font-family: var(--serif);
-  font-size: 0.8rem;
-  line-height: 1.38;
-}
-.kagit::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(100cqw * 0.27);
-  background:
-    linear-gradient(to bottom right, transparent calc(50% - 0.6px), #161616 calc(50% - 0.6px), #161616 calc(50% + 0.6px), transparent calc(50% + 0.6px)) left bottom / 50.15% 100% no-repeat,
-    linear-gradient(to bottom left, transparent calc(50% - 0.6px), #161616 calc(50% - 0.6px), #161616 calc(50% + 0.6px), transparent calc(50% + 0.6px)) right bottom / 50.15% 100% no-repeat;
-}
-.zarf.acik .zarf-svg { display: none; }
-.zarf.acik .kagit {
-  display: block;
-  min-height: calc(100cqw * 132 / 240);
-}
-.kalp-alt {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100cqw * 0.018);
-  width: calc(100cqw * 0.036);
-  height: calc(100cqw * 0.036);
-  margin: 0;
-  background: #d0122a;
-  transform: translateX(-50%) rotate(45deg);
-}
-.kalp-alt::before,
-.kalp-alt::after {
-  content: "";
-  position: absolute;
-  width: calc(100cqw * 0.036);
-  height: calc(100cqw * 0.036);
-  background: #d0122a;
-  border-radius: 50%;
-}
-.kalp-alt::before { left: calc(100cqw * -0.018); }
-.kalp-alt::after { top: calc(100cqw * -0.018); }
 .anma {
   background:
     radial-gradient(ellipse 22rem 14rem at 50% 3.2rem, rgba(198, 140, 70, 0.1), transparent 70%),
@@ -578,7 +556,7 @@ html.canli .ad { transition-duration: 1.05s; }
   .bolum { padding: 5rem 2rem; }
   .kartlar { grid-template-columns: 1fr 1fr; gap: 0.85rem; }
   .zarflar { max-width: 52rem; gap: 1.4rem 1.1rem; }
-  .kagit { font-size: 0.98rem; padding: 0.9rem 0.85rem calc(100cqw * 0.3); }
+  .kagit { font-size: 1.02rem; }
   .anma { padding: 6rem 2rem 2.5rem; }
   .dugmeler { flex-direction: row; width: auto; justify-content: center; }
   .dugme { min-width: 14.5rem; }
@@ -592,7 +570,7 @@ html.canli .ad { transition-duration: 1.05s; }
 @media (prefers-reduced-motion: reduce) {
   .giris h1, .cizgi, .kutlama, .ipucu, .alev, .serit-yol.akar { animation: none; }
   .film video { display: none; }
-  [data-belir], .ad, .kagit, .zarf { transition: none; }
+  [data-belir], .ad, .kagit, .kagit-yer { transition: none; }
 }
 </style>
 <script>
@@ -664,27 +642,27 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     <div class="zarflar">
       <button class="zarf" type="button" aria-expanded="false">
         <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true"><rect width="240" height="132" fill="#fff"/><rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/><polyline points="2,2 120,64 238,2" fill="none" stroke="#161616" stroke-width="2"/><path fill="#d0122a" d="M120 80.2c0 0-6.4-3.7-6.4-6.8a3.2 3.2 0 0 1 6.4-1 3.2 3.2 0 0 1 6.4 1c0 3.1-6.4 6.8-6.4 6.8z"/></svg>
-        <span class="kagit">“Belki sizin için sıradan bir ders günüydü, ama benim için hayatım boyunca unutmayacağım bir şey öğrendiğim gündü.”<span class="kalp-alt" aria-hidden="true"></span></span>
+        <span class="kagit-yer"><span class="kagit"><span>“Belki sizin için sıradan bir ders günüydü, ama benim için hayatım boyunca unutmayacağım bir şey öğrendiğim gündü.”</span></span></span>
       </button>
       <button class="zarf" type="button" aria-expanded="false">
         <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true"><rect width="240" height="132" fill="#fff"/><rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/><polyline points="2,2 120,64 238,2" fill="none" stroke="#161616" stroke-width="2"/><path fill="#d0122a" d="M120 80.2c0 0-6.4-3.7-6.4-6.8a3.2 3.2 0 0 1 6.4-1 3.2 3.2 0 0 1 6.4 1c0 3.1-6.4 6.8-6.4 6.8z"/></svg>
-        <span class="kagit">“Bana yalnızca bilmediklerimi öğretmediniz; bazen kendimde göremediğim güzellikleri de gösterdiniz.”<span class="kalp-alt" aria-hidden="true"></span></span>
+        <span class="kagit-yer"><span class="kagit"><span>“Bana yalnızca bilmediklerimi öğretmediniz; bazen kendimde göremediğim güzellikleri de gösterdiniz.”</span></span></span>
       </button>
       <button class="zarf" type="button" aria-expanded="false">
         <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true"><rect width="240" height="132" fill="#fff"/><rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/><polyline points="2,2 120,64 238,2" fill="none" stroke="#161616" stroke-width="2"/><path fill="#d0122a" d="M120 80.2c0 0-6.4-3.7-6.4-6.8a3.2 3.2 0 0 1 6.4-1 3.2 3.2 0 0 1 6.4 1c0 3.1-6.4 6.8-6.4 6.8z"/></svg>
-        <span class="kagit">“Yıllar sonra aynı sıralarda olmayacağız belki ama öğrettikleriniz, kurduğunuz cümleler ve bize kattıklarınız hep bizimle kalacak.”<span class="kalp-alt" aria-hidden="true"></span></span>
+        <span class="kagit-yer"><span class="kagit"><span>“Yıllar sonra aynı sıralarda olmayacağız belki ama öğrettikleriniz, kurduğunuz cümleler ve bize kattıklarınız hep bizimle kalacak.”</span></span></span>
       </button>
       <button class="zarf" type="button" aria-expanded="false">
         <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true"><rect width="240" height="132" fill="#fff"/><rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/><polyline points="2,2 120,64 238,2" fill="none" stroke="#161616" stroke-width="2"/><path fill="#d0122a" d="M120 80.2c0 0-6.4-3.7-6.4-6.8a3.2 3.2 0 0 1 6.4-1 3.2 3.2 0 0 1 6.4 1c0 3.1-6.4 6.8-6.4 6.8z"/></svg>
-        <span class="kagit">“Bir gün yollarımız ayrı düşse de hayatımın bir döneminde bana ışık olduğunuzu hiç unutmayacağım.”<span class="kalp-alt" aria-hidden="true"></span></span>
+        <span class="kagit-yer"><span class="kagit"><span>“Bir gün yollarımız ayrı düşse de hayatımın bir döneminde bana ışık olduğunuzu hiç unutmayacağım.”</span></span></span>
       </button>
       <button class="zarf" type="button" aria-expanded="false">
         <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true"><rect width="240" height="132" fill="#fff"/><rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/><polyline points="2,2 120,64 238,2" fill="none" stroke="#161616" stroke-width="2"/><path fill="#d0122a" d="M120 80.2c0 0-6.4-3.7-6.4-6.8a3.2 3.2 0 0 1 6.4-1 3.2 3.2 0 0 1 6.4 1c0 3.1-6.4 6.8-6.4 6.8z"/></svg>
-        <span class="kagit">“Bazen tek bir cümleniz, günlerce düşündüğüm bir sorunun cevabı; bazen de kendime inanmam için ihtiyaç duyduğum tek şey oldu.”<span class="kalp-alt" aria-hidden="true"></span></span>
+        <span class="kagit-yer"><span class="kagit"><span>“Bazen tek bir cümleniz, günlerce düşündüğüm bir sorunun cevabı; bazen de kendime inanmam için ihtiyaç duyduğum tek şey oldu.”</span></span></span>
       </button>
       <button class="zarf" type="button" aria-expanded="false">
         <svg class="zarf-svg" viewBox="0 0 240 132" aria-hidden="true"><rect width="240" height="132" fill="#fff"/><rect x="1.4" y="1.4" width="237.2" height="129.2" fill="#fff" stroke="#161616" stroke-width="2.2"/><polyline points="2,2 120,64 238,2" fill="none" stroke="#161616" stroke-width="2"/><path fill="#d0122a" d="M120 80.2c0 0-6.4-3.7-6.4-6.8a3.2 3.2 0 0 1 6.4-1 3.2 3.2 0 0 1 6.4 1c0 3.1-6.4 6.8-6.4 6.8z"/></svg>
-        <span class="kagit">“Büyüdüğümüzde belki mesleğinizi değil, bize hissettirdiğiniz değeri ve hayatımıza kattığınız güzellikleri hatırlayacağız.”<span class="kalp-alt" aria-hidden="true"></span></span>
+        <span class="kagit-yer"><span class="kagit"><span>“Büyüdüğümüzde belki mesleğinizi değil, bize hissettirdiğiniz değeri ve hayatımıza kattığınız güzellikleri hatırlayacağız.”</span></span></span>
       </button>
     </div>
   </section>
